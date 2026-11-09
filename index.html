@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>WinAPI Atlas | Windows API Malware Technique Catalog &amp; MalAPI.io Alternative</title>
+  <meta name="description" content="Interactive catalog of 721+ Windows APIs mapped to malware techniques, MITRE ATT&amp;CK, Sysmon Event IDs, and ETW providers for SOC Analysts and Malware Researchers. The modern MalAPI.io alternative.">
+  <meta name="keywords" content="MalAPI, MalAPI.io alternative, Windows API malware, Win32 API catalog, Malware Analysis, SOC Analyst, Detection Engineering, Sysmon, ETW, MITRE ATT&amp;CK">
+  <link rel="canonical" href="https://winapi-atlas.vercel.app/">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="author" content="WinAPI Atlas contributors">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="WinAPI Atlas | Windows API Malware Technique Catalog">
+  <meta property="og:description" content="Interactive catalog of 721+ Windows APIs mapped to malware techniques, MITRE ATT&amp;CK, Sysmon Event IDs, and ETW providers for SOC Analysts and Malware Researchers.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://winapi-atlas.vercel.app/">
+  <meta property="og:site_name" content="WinAPI Atlas">
+  <meta property="og:image" content="https://winapi-atlas.vercel.app/screenshots/desktop-dark.png">
+  <meta property="og:image:alt" content="WinAPI Atlas catalog showing Windows API categories as columns in a dark theme">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WinAPI Atlas | Windows API Malware Technique Catalog">
+  <meta name="twitter:description" content="721+ Windows APIs mapped to malware techniques, MITRE ATT&amp;CK, Sysmon events and ETW providers. A modern MalAPI.io alternative for detection engineering.">
+  <meta name="twitter:image" content="https://winapi-atlas.vercel.app/screenshots/desktop-dark.png">
+
+  <!-- Google Search Console verification: replace ADD_CODE_HERE with the token from Search Console → Settings → Ownership verification → HTML tag. -->
+  <meta name="google-site-verification" content="ADD_CODE_HERE">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "WinAPI Atlas",
+    "url": "https://winapi-atlas.vercel.app/",
+    "applicationCategory": "SecurityApplication",
+    "applicationSubCategory": "Malware analysis and detection engineering reference",
+    "operatingSystem": "Any modern web browser",
+    "browserRequirements": "Requires JavaScript",
+    "isAccessibleForFree": true,
+    "softwareVersion": "1.0",
+    "license": "https://opensource.org/licenses/MIT",
+    "description": "WinAPI Atlas is an interactive catalog of 721+ Windows API functions mapped to malware technique categories, MITRE ATT&CK techniques, Sysmon event IDs and ETW providers. It is a modern, detection-focused alternative to MalAPI.io for SOC analysts, malware researchers and detection engineers.",
+    "featureList": [
+      "721+ Windows APIs across 19 technique categories",
+      "MITRE ATT&CK technique mapping",
+      "Sysmon event IDs and ETW providers per API",
+      "Mapping mode with technique-chain inference",
+      "Paste imports triage for dumpbin, rabin2 and PEStudio output",
+      "CSV, JSON, Markdown and Sigma-style exports"
+    ],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "isSimilarTo": {
+      "@type": "SoftwareApplication",
+      "name": "MalAPI.io",
+      "url": "https://malapi.io/",
+      "description": "Community catalog of Windows APIs used by malware, which WinAPI Atlas expands with detection guidance, Sysmon/ETW telemetry and mapping workflows."
+    }
+  }
+  </script>
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#catalog">Skip to catalog</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">W</span>
+      <span class="brand-text">
+        <h1 class="brand-name">WinAPI Atlas</h1>
+        <span class="brand-tag">Windows APIs → malware techniques</span>
+      </span>
+    </div>
+
+    <form class="search-wrap" role="search" id="search-form">
+      <label class="visually-hidden" for="search">Search APIs by name, library, description or MITRE technique</label>
+      <input id="search" name="q" type="search" placeholder="Search APIs, libraries, MITRE IDs…" autocomplete="off" spellcheck="false" aria-describedby="search-hint">
+      <kbd class="search-kbd" aria-hidden="true">/</kbd>
+      <span id="search-hint" class="visually-hidden">Press slash to focus the search field. Results filter as you type.</span>
+    </form>
+
+    <div class="header-actions">
+      <button id="mapping-toggle" class="btn toggle" type="button" aria-pressed="false" title="Mapping mode: click APIs to build a selection">
+        Mapping mode
+      </button>
+      <button id="paste-btn" class="btn" type="button" title="Triage a pasted import table and map every matching API">
+        Paste Imports
+      </button>
+      <details class="export-menu">
+        <summary class="btn">Export</summary>
+        <div class="export-pop">
+          <button class="export-btn" type="button" data-export="csv">CSV</button>
+          <button class="export-btn" type="button" data-export="json">JSON</button>
+          <button class="export-btn" type="button" data-export="markdown">Markdown</button>
+          <button class="export-btn" type="button" data-export="sigma">Sigma-style hints</button>
+          <p class="export-note" id="export-scope">Exports the visible table, or the selection when one exists.</p>
+        </div>
+      </details>
+      <button id="contribute-btn" class="btn" type="button">Contribute</button>
+      <button id="theme-toggle" class="btn icon-btn" type="button" aria-label="Switch to light theme">Light</button>
+      <button id="about-btn" class="btn icon-btn" type="button" aria-label="About WinAPI Atlas">?</button>
+    </div>
+  </header>
+
+  <div class="filterbar">
+    <details id="filters" class="filters">
+      <summary id="filters-summary" class="filters-summary">
+        Filters <span id="filter-count" class="count-pill">0</span>
+      </summary>
+      <div class="filter-panel">
+        <fieldset class="filter-group">
+          <legend>Library</legend>
+          <div id="library-filters" class="checkgrid checkgrid-lib"></div>
+        </fieldset>
+        <fieldset class="filter-group">
+          <legend>Suspicion on its own</legend>
+          <div id="suspicion-filters" class="checkrow"></div>
+        </fieldset>
+        <fieldset class="filter-group">
+          <legend>Category columns</legend>
+          <div id="category-filters" class="chips"></div>
+        </fieldset>
+        <div class="filter-group">
+          <label class="field-label" for="mitre-filter">MITRE technique</label>
+          <select id="mitre-filter">
+            <option value="">All techniques</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button id="reset-filters" class="btn" type="button">Reset filters</button>
+        </div>
+      </div>
+    </details>
+    <p id="status" class="status" role="status" aria-live="polite">Loading catalog…</p>
+  </div>
+
+  <nav id="cat-tabs" class="cat-tabs" aria-label="Category columns" hidden></nav>
+
+  <main id="catalog" class="catalog" tabindex="-1" aria-label="Windows API catalog by category">
+    <div id="columns" class="columns">
+      <p class="loading">Loading catalog…</p>
+    </div>
+  </main>
+
+  <aside id="selection-panel" class="selpanel" aria-label="Mapping selection" hidden></aside>
+
+  <noscript>
+    <section class="noscript-fallback" aria-labelledby="noscript-title">
+      <h2 id="noscript-title">WinAPI Atlas — Windows API malware technique catalog</h2>
+      <p>
+        WinAPI Atlas is a free, open catalog of <strong>721+ real Windows API functions</strong> used by
+        malware and the software that defends against it. Every entry lists its library, description,
+        MITRE ATT&amp;CK technique, Sysmon event IDs, ETW providers, legitimate use and behavioural
+        detection guidance. It is a modern, detection-focused alternative to MalAPI.io.
+      </p>
+      <h3>19 technique categories</h3>
+      <ul class="noscript-categories">
+        <li><strong>Enumeration</strong> — discovery of processes, modules, windows, files, services and system state.</li>
+        <li><strong>Injection</strong> — placing code or data inside another process, or starting a thread there.</li>
+        <li><strong>Evasion</strong> — hiding activity, checking the environment, or making code harder to analyse.</li>
+        <li><strong>Spying</strong> — capturing keystrokes, clipboard data, windows, screens or audio.</li>
+        <li><strong>Internet</strong> — WinINet, WinHTTP and URL moniker APIs for HTTP(S) and FTP traffic.</li>
+        <li><strong>Anti-Debugging</strong> — detecting or frustrating debuggers, sandboxes and analysis tools.</li>
+        <li><strong>Ransomware</strong> — encryption, key handling and shadow-copy or backup interference.</li>
+        <li><strong>Helper</strong> — utility APIs that support other stages without being malicious on their own.</li>
+        <li><strong>Persistence</strong> — surviving reboot, logoff or process exit.</li>
+        <li><strong>Privilege Escalation</strong> — obtaining higher integrity, token or system rights.</li>
+        <li><strong>Credential Access</strong> — reading credentials, tokens, LSASS memory or browser secrets.</li>
+        <li><strong>Process Hollowing</strong> — unmapping and replacing a legitimate process image.</li>
+        <li><strong>Lateral Movement</strong> — reaching other hosts through services, shares or remote execution.</li>
+        <li><strong>Defense Evasion (AMSI/ETW)</strong> — tampering with AMSI scanning or ETW telemetry.</li>
+        <li><strong>Crypto</strong> — hashing, encryption and key-derivation APIs.</li>
+        <li><strong>Registry</strong> — reading and writing configuration and persistence keys.</li>
+        <li><strong>Service Control</strong> — creating, starting, modifying or deleting Windows services.</li>
+        <li><strong>Memory Management</strong> — allocating, protecting, mapping and freeing memory.</li>
+        <li><strong>Network / Sockets</strong> — Winsock connections, listeners and raw traffic.</li>
+      </ul>
+      <p>
+        Enable JavaScript to use instant search, combinable filters, Mapping mode, technique inference,
+        paste-import triage and CSV/JSON/Markdown/Sigma-style exports. Dataset and code are MIT licensed.
+      </p>
+    </section>
+  </noscript>
+
+  <footer class="app-footer">
+    <p class="footer-credit">
+      Inspired by <a href="https://malapi.io/" target="_blank" rel="noopener noreferrer">MalAPI.io</a> by mr.d0x.
+      WinAPI Atlas is an independent, expanded catalog. API names and documentation belong to Microsoft.
+    </p>
+    <p class="footer-meta">Dataset licensed MIT · <a href="README.md">README</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
+    <p class="footer-disclaimer">Defensive and educational use only. This reference contains no exploit or malware code.</p>
+    <div class="footer-links">
+      <button id="footer-contribute" class="link-btn" type="button">Contribute an API</button>
+      <button id="footer-about" class="link-btn" type="button">About &amp; shortcuts</button>
+    </div>
+  </footer>
+
+  <dialog id="about-dialog" class="dialog" aria-labelledby="about-title">
+    <div class="dialog-shell">
+      <header class="dialog-head">
+        <h2 class="dialog-title" id="about-title">About WinAPI Atlas</h2>
+        <button class="dialog-close" type="button" data-close aria-label="Close about dialog">×</button>
+      </header>
+      <div class="dialog-body">
+        <p>
+          WinAPI Atlas maps Windows API functions to malware technique categories, MITRE ATT&amp;CK
+          techniques and behavioural telemetry. It is a reference for malware analysts, SOC analysts and
+          detection engineers — not an execution toolkit.
+        </p>
+        <h3>Mapping mode</h3>
+        <p>
+          Turn on <strong>Mapping mode</strong>, then click APIs in any column. APIs that appear in several
+          columns highlight everywhere. The floating panel counts the selection, breaks it down per category
+          and scores known technique chains from <code>data/presets.json</code>.
+        </p>
+        <h3>Paste imports</h3>
+        <p>
+          Paste <code>dumpbin /imports</code>, <code>rabin2 -i</code>, PEStudio output or a list of strings.
+          Matching runs locally, recognises A/W/Ex variants and turns every hit into a mapping selection.
+        </p>
+        <h3>Keyboard</h3>
+        <ul class="shortcut-list">
+          <li><kbd>/</kbd> focus search</li>
+          <li><kbd>Esc</kbd> leave search or close a dialog</li>
+          <li><kbd>M</kbd> toggle mapping mode</li>
+          <li><kbd>Tab</kbd> move between filters, columns and API cards</li>
+        </ul>
+        <h3>How to read an entry</h3>
+        <p>
+          <strong>Suspicion</strong> describes how suspicious the API is on its own, not how likely the binary
+          is malicious. Most APIs are used by ordinary software every day, so detection guidance focuses on
+          context, correlation and telemetry.
+        </p>
+        <h3>Data and verification</h3>
+        <p>
+          Entries marked <em>verified</em> are documented Win32 APIs with Microsoft Learn coverage. Native
+          <code>Nt*</code>/<code>Zw*</code>/<code>Rtl*</code> entries marked unverified are exported and widely
+          used, but their behaviour is not described by a public per-function reference page.
+        </p>
+        <h3>Shareable state</h3>
+        <p>
+          Search, filters, selection and theme are encoded in the URL hash, and the open entry uses
+          <code>?api=Name</code>. Copy <strong>Copy Link</strong> in an entry dialog to share it. Plain
+          category links such as <code>?cat=injection</code> open that column directly.
+        </p>
+        <p class="muted">
+          License: MIT. Inspired by MalAPI.io. Defensive and educational use only.
+        </p>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

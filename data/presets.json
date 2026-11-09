@@ -1,0 +1,186 @@
+[
+  {
+    "id": "classic-dll-injection",
+    "title": "Classic DLL injection",
+    "mitre": { "id": "T1055.001", "name": "Process Injection: Dynamic-link Library Injection" },
+    "required": ["OpenProcess", "VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"],
+    "optional": ["VirtualProtectEx", "GetProcAddress", "LoadLibraryW", "LoadLibraryA", "CreateRemoteThreadEx"],
+    "defender_note": "Correlate a cross-process allocation + write + remote thread from one source process. Resolve the thread start address against loaded modules: an address outside any module is the strongest sign."
+  },
+  {
+    "id": "apc-injection",
+    "title": "APC / early-bird injection",
+    "mitre": { "id": "T1055.004", "name": "Process Injection: Asynchronous Procedure Call" },
+    "required": ["OpenProcess", "VirtualAllocEx", "WriteProcessMemory", "QueueUserAPC"],
+    "optional": ["NtQueueApcThread", "ResumeThread", "CreateProcessW", "VirtualProtectEx"],
+    "defender_note": "A queued APC into another process followed by thread resumption is the core pattern. Watch for APCs queued right after CreateProcess with a suspended thread (early bird)."
+  },
+  {
+    "id": "process-hollowing",
+    "title": "Process hollowing",
+    "mitre": { "id": "T1055.012", "name": "Process Injection: Process Hollowing" },
+    "required": ["CreateProcessW", "NtUnmapViewOfSection", "VirtualAllocEx", "WriteProcessMemory", "SetThreadContext"],
+    "optional": ["NtQueryInformationProcess", "ResumeThread", "ReadProcessMemory", "VirtualProtectEx", "NtSetContextThread"],
+    "defender_note": "Look for a created-then-suspended child whose image is unmapped and rewritten, then resumed with a redirected entry point. Sysmon 25 (ProcessTampering) is the cheapest catch-all."
+  },
+  {
+    "id": "thread-hijacking",
+    "title": "Thread execution hijacking",
+    "mitre": { "id": "T1055.003", "name": "Process Injection: Thread Execution Hijacking" },
+    "required": ["OpenThread", "SuspendThread", "GetThreadContext", "SetThreadContext"],
+    "optional": ["VirtualProtectEx", "WriteProcessMemory", "ResumeThread", "NtSetContextThread"],
+    "defender_note": "Remote thread context reads and writes are rare outside debuggers. Compare the new instruction pointer with the module map of the target."
+  },
+  {
+    "id": "section-mapping-execution",
+    "title": "Section mapping / image reload",
+    "mitre": { "id": "T1055", "name": "Process Injection" },
+    "required": ["CreateFileMappingW", "MapViewOfFile", "CreateThread"],
+    "optional": ["NtCreateSection", "NtMapViewOfSection", "VirtualProtect", "UnmapViewOfFile"],
+    "defender_note": "Executable views of file mappings, especially when the backing file is in a temp directory or has no on-disk PE header, indicate reflective or manual mapping."
+  },
+  {
+    "id": "keylogging",
+    "title": "Keystroke capture",
+    "mitre": { "id": "T1056.001", "name": "Input Capture: Keylogging" },
+    "required": ["SetWindowsHookExW", "GetAsyncKeyState"],
+    "optional": ["GetKeyState", "GetKeyboardState", "MapVirtualKeyW", "GetForegroundWindow", "GetWindowTextW", "GetMessageW"],
+    "defender_note": "Global keyboard hooks installed by unsigned binaries, plus high-frequency polling of GetAsyncKeyState, are the classic pair. Watch for hook installation outside interactive accessibility software."
+  },
+  {
+    "id": "clipboard-hijack",
+    "title": "Clipboard banking trojan",
+    "mitre": { "id": "T1115", "name": "Clipboard Data" },
+    "required": ["OpenClipboard", "GetClipboardData", "SetClipboardData"],
+    "optional": ["EnumClipboardFormats", "EmptyClipboard", "GetClipboardSequenceNumber"],
+    "defender_note": "A process that polls the clipboard and rewrites it with attacker-controlled wallet addresses or IBANs. Sequence-number polling loops are the tell."
+  },
+  {
+    "id": "screen-capture",
+    "title": "Desktop screenshot capture",
+    "mitre": { "id": "T1113", "name": "Screen Capture" },
+    "required": ["GetDC", "CreateCompatibleDC", "CreateCompatibleBitmap", "BitBlt"],
+    "optional": ["GetDIBits", "PrintWindow", "GetWindowDC", "StretchBlt"],
+    "defender_note": "GDI captures of the whole desktop from a non-interactive process, often followed by file writes or network uploads."
+  },
+  {
+    "id": "ransomware-encryption",
+    "title": "Ransomware encryption flow",
+    "mitre": { "id": "T1486", "name": "Data Encrypted for Impact" },
+    "required": ["FindFirstFileW", "CryptAcquireContextW", "CryptEncrypt", "CreateFileW", "WriteFile"],
+    "optional": ["CryptGenKey", "CryptGenRandom", "MoveFileExW", "DeleteFileW", "SetFileTime", "FindNextFileW", "CryptImportKey"],
+    "defender_note": "High-rate file rewrites with renamed extensions, entropy jumps and shadow-copy deletion. Alert on encryption APIs combined with recursive enumeration in user data paths."
+  },
+  {
+    "id": "lsass-dump",
+    "title": "LSASS credential dumping",
+    "mitre": { "id": "T1003.001", "name": "OS Credential Dumping: LSASS Memory" },
+    "required": ["OpenProcess", "ReadProcessMemory"],
+    "optional": ["VirtualQueryEx", "EnumProcessModules", "Module32FirstW", "CreateToolhelp32Snapshot", "MiniDumpWriteDump", "OpenProcessToken"],
+    "defender_note": "Granted access to lsass.exe with read rights (0x1010 / 0x1410) is the highest-fidelity signal. Alert on any non-security process opening LSASS and on minidump writes to temp paths."
+  },
+  {
+    "id": "token-theft",
+    "title": "Token theft and impersonation",
+    "mitre": { "id": "T1134.001", "name": "Access Token Manipulation: Token Impersonation/Theft" },
+    "required": ["OpenProcessToken", "DuplicateTokenEx"],
+    "optional": ["OpenProcess", "CreateProcessWithTokenW", "ImpersonateLoggedOnUser", "SetThreadToken", "LookupPrivilegeValueW", "AdjustTokenPrivileges"],
+    "defender_note": "Token duplication from a SYSTEM process followed by process creation is privilege escalation. Correlate with 4672/4688 and unusual parent-child relationships."
+  },
+  {
+    "id": "service-persistence",
+    "title": "Service-based persistence",
+    "mitre": { "id": "T1543.003", "name": "Create or Modify System Process: Windows Service" },
+    "required": ["OpenSCManagerW", "CreateServiceW", "StartServiceW"],
+    "optional": ["ChangeServiceConfigW", "QueryServiceStatusEx", "RegSetValueExW"],
+    "defender_note": "Event 7045 service installs with binaries outside trusted paths, or a service name that mimics a driver. Check the creating process and service account."
+  },
+  {
+    "id": "run-key-persistence",
+    "title": "Run key / startup persistence",
+    "mitre": { "id": "T1547.001", "name": "Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder" },
+    "required": ["RegOpenKeyExW", "RegSetValueExW"],
+    "optional": ["RegCreateKeyExW", "RegDeleteValueW", "RegEnumValueW", "SHGetFolderPathW", "CopyFileW"],
+    "defender_note": "Writes to Run/RunOnce or the Startup folder by non-installer processes. Compare the value path with the writing binary's directory and signature."
+  },
+  {
+    "id": "reverse-shell-sockets",
+    "title": "Reverse shell over Winsock",
+    "mitre": { "id": "T1095", "name": "Non-Application Layer Protocol" },
+    "required": ["WSAStartup", "socket", "connect"],
+    "optional": ["WSASocketW", "send", "recv", "CreateProcessW", "CreatePipe", "SetStdHandle", "WSADuplicateSocketW"],
+    "defender_note": "Outbound socket from a non-browser process immediately followed by child-process creation with redirected std handles. Destination reputation and volume matter more than the API list."
+  },
+  {
+    "id": "http-dropper",
+    "title": "HTTP downloader / dropper",
+    "mitre": { "id": "T1105", "name": "Ingress Tool Transfer" },
+    "required": ["InternetOpenW", "InternetOpenUrlW", "InternetReadFile"],
+    "optional": ["HttpOpenRequestW", "HttpSendRequestW", "CreateFileW", "WriteFile", "ShellExecuteW", "CreateProcessW", "URLDownloadToFileW"],
+    "defender_note": "A user-mode download of an executable into temp/appdata followed by execution. Proxy logs, URL reputation and file-write-then-execute sequences all detect this."
+  },
+  {
+    "id": "dns-tunnel",
+    "title": "DNS tunnelling / TXT exfiltration",
+    "mitre": { "id": "T1071.004", "name": "Application Layer Protocol: DNS" },
+    "required": ["DnsQuery_W", "gethostbyname"],
+    "optional": ["getaddrinfo", "sendto", "recvfrom", "WSAStartup", "DnsQueryEx"],
+    "defender_note": "High-volume, high-entropy DNS queries with long labels from a single host. DNS server logs and passive DNS give better fidelity than endpoint API telemetry."
+  },
+  {
+    "id": "amsi-bypass",
+    "title": "AMSI tampering",
+    "mitre": { "id": "T1562.001", "name": "Impair Defenses: Disable or Modify Tools" },
+    "required": ["AmsiScanBuffer", "VirtualProtect"],
+    "optional": ["GetProcAddress", "LoadLibraryW", "AmsiOpenSession", "AmsiInitialize", "FlushInstructionCache"],
+    "defender_note": "Any non-security process resolving amsi.dll and changing the protection of AmsiScanBuffer is almost always malicious. Enable AMSI provider ETW and script-block logging."
+  },
+  {
+    "id": "etw-patching",
+    "title": "ETW patching",
+    "mitre": { "id": "T1562.006", "name": "Impair Defenses: Indicator Blocking" },
+    "required": ["EtwEventWrite", "VirtualProtect"],
+    "optional": ["GetProcAddress", "LoadLibraryW", "NtTraceEvent", "EtwEventSetInformation"],
+    "defender_note": "Writes into ntdll!EtwEventWrite or calls to NtTraceControl that disable providers. Monitor image protection changes on ntdll and early process writes into its code section."
+  },
+  {
+    "id": "unhooking",
+    "title": "EDR userland unhooking",
+    "mitre": { "id": "T1562.001", "name": "Impair Defenses: Disable or Modify Tools" },
+    "required": ["LoadLibraryW", "GetProcAddress", "VirtualProtect"],
+    "optional": ["CreateFileMappingW", "MapViewOfFile", "NtCreateSection", "NtMapViewOfSection", "WriteProcessMemory"],
+    "defender_note": "Mapping a fresh copy of ntdll from disk and copying its .text over the loaded module restores clean syscall stubs. Typical of malware that expects inline hooks."
+  },
+  {
+    "id": "uac-token-bypass",
+    "title": "UAC bypass via token / COM",
+    "mitre": { "id": "T1548.002", "name": "Abuse Elevation Control Mechanism: Bypass User Account Control" },
+    "required": ["CreateProcessWithTokenW"],
+    "optional": ["CoGetObject", "ShellExecuteExW", "DuplicateTokenEx", "OpenProcessToken", "NtSetInformationProcess"],
+    "defender_note": "Elevated process creation without a consent prompt, especially via auto-elevating COM objects or token duplication into a medium-integrity parent."
+  },
+  {
+    "id": "driver-load",
+    "title": "Driver loading for kernel execution",
+    "mitre": { "id": "T1068", "name": "Exploitation for Privilege Escalation" },
+    "required": ["NtLoadDriver"],
+    "optional": ["OpenSCManagerW", "CreateServiceW", "StartServiceW", "NtUnloadDriver", "RegSetValueExW"],
+    "defender_note": "Service creation pointing at a .sys file followed by NtLoadDriver. Driver signature enforcement and vulnerable-driver blocklists are the primary controls."
+  },
+  {
+    "id": "smb-lateral-movement",
+    "title": "SMB / admin share lateral movement",
+    "mitre": { "id": "T1021.002", "name": "Remote Services: SMB/Windows Admin Shares" },
+    "required": ["WNetAddConnection2W"],
+    "optional": ["NetUseAdd", "CopyFileW", "CreateServiceW", "OpenSCManagerW", "NetShareEnum", "WNetGetUniversalNameW"],
+    "defender_note": "SMB connections to ADMIN$/C$ followed by service creation or file copies. 4624 type 3 logons, 5140 share access and service installs on the target host tell the story."
+  },
+  {
+    "id": "http-exfiltration",
+    "title": "HTTPS exfiltration",
+    "mitre": { "id": "T1041", "name": "Exfiltration Over C2 Channel" },
+    "required": ["WinHttpOpen", "WinHttpConnect", "WinHttpSendRequest"],
+    "optional": ["WinHttpWriteData", "WinHttpOpenRequest", "InternetWriteFile", "HttpSendRequestW", "WinHttpQueryHeaders"],
+    "defender_note": "Large outbound POST bodies from a host that normally only browses. Look at bytes-out per destination and TLS SNI/JA3 consistency."
+  }
+]

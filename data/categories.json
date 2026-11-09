@@ -1,0 +1,135 @@
+[
+  {
+    "id": "enumeration",
+    "title": "Enumeration",
+    "description": "Discovery of processes, modules, windows, files, services and system state.",
+    "color": "#38bdf8",
+    "explanation": "These APIs survey the machine: the process list, loaded modules, windows, services, shares or volumes. Malware uses them for discovery and targeting; administrators, EDR agents and installers use them constantly, so treat them as context, not verdicts."
+  },
+  {
+    "id": "injection",
+    "title": "Injection",
+    "description": "Placing code or data inside another process, or starting a thread there.",
+    "color": "#f87171",
+    "explanation": "Cross-process memory allocation, memory writes and remote thread creation form the classic injection chain. Any single call can be legitimate (debuggers, EDR, accessibility tools), so detection should correlate the full sequence from one source process."
+  },
+  {
+    "id": "evasion",
+    "title": "Evasion",
+    "description": "Hiding activity, checking the environment, or making code harder to analyse.",
+    "color": "#fbbf24",
+    "explanation": "Environment checks, sandbox detection, timing tricks, obfuscation and anti-analysis helpers. Individually these calls are weak signals; chained with unpacking or discovery they become meaningful."
+  },
+  {
+    "id": "spying",
+    "title": "Spying",
+    "description": "Capturing keystrokes, clipboard data, windows, screens or audio.",
+    "color": "#a78bfa",
+    "explanation": "Input capture and screen/clipboard reads. Hooks and polling loops are the usual mechanisms. Legitimate uses include accessibility tools, remote support, screenshot utilities and clipboard managers."
+  },
+  {
+    "id": "internet",
+    "title": "Internet",
+    "description": "WinINet, WinHTTP and URL moniker APIs for HTTP(S) and FTP traffic.",
+    "color": "#34d399",
+    "explanation": "High-level Windows networking used for downloaders, beaconing and exfiltration. Proxy logs, DNS telemetry and URL reputation usually identify the destination even when the binary is packed."
+  },
+  {
+    "id": "anti-debugging",
+    "title": "Anti-Debugging",
+    "description": "Detecting or frustrating debuggers, sandboxes and analysis tools.",
+    "color": "#fb923c",
+    "explanation": "Debugger checks, timing measurement, debug-object tricks and debugger-blocking thread flags. Often the first thing an analyst has to patch or bypass."
+  },
+  {
+    "id": "ransomware",
+    "title": "Ransomware",
+    "description": "File encryption, deletion, extension changes and ransom-note delivery.",
+    "color": "#e879f9",
+    "explanation": "The destructive end of the intrusion: mass file encryption, shadow copy removal, deletion and note display. Detection favours behaviour (volume of renames and writes) over individual APIs."
+  },
+  {
+    "id": "helper",
+    "title": "Helper",
+    "description": "General-purpose Win32 plumbing used by nearly every program.",
+    "color": "#94a3b8",
+    "explanation": "Process, file, handle, string and console helpers. On their own they carry almost no signal; they matter as part of a chain or when arguments are suspicious (temp paths, encoded strings, hidden windows)."
+  },
+  {
+    "id": "persistence",
+    "title": "Persistence",
+    "description": "Surviving reboot: run keys, startup folders, services and scheduled tasks.",
+    "color": "#22d3ee",
+    "explanation": "Mechanisms that re-launch code after logoff or reboot. Registry writes, service creation and startup-folder copies are the most common; correlate with the writing process and the launched path."
+  },
+  {
+    "id": "privilege-escalation",
+    "title": "Privilege Escalation",
+    "description": "Obtaining higher integrity or additional token privileges.",
+    "color": "#f472b6",
+    "explanation": "Token manipulation, privilege enabling and process creation with alternate credentials. Legitimate installers and management agents do some of this, so watch for unusual parent/child pairs and privilege names."
+  },
+  {
+    "id": "credential-access",
+    "title": "Credential Access",
+    "description": "Reading secrets from memory, the credential manager, LSASS or the registry.",
+    "color": "#facc15",
+    "explanation": "Credential theft tooling relies on process memory reads, token APIs and the Windows Credential Manager. LSASS handle access and Credential Manager reads are strong signals when performed by non-security software."
+  },
+  {
+    "id": "process-hollowing",
+    "title": "Process Hollowing",
+    "description": "Unmapping a legitimate image and running replacement code inside it.",
+    "color": "#ef4444",
+    "explanation": "Suspend, unmap, map/write, retarget the entry point, resume. Process Tampering telemetry (Sysmon 25) plus image/thread mismatches are the best detections."
+  },
+  {
+    "id": "lateral-movement",
+    "title": "Lateral Movement",
+    "description": "Reaching other hosts through SMB, admin shares, RPC and sessions.",
+    "color": "#2dd4bf",
+    "explanation": "Network logons, share connections and remote service creation. Authentication logs (4624 type 3, 4648) and SMB client telemetry usually give better coverage than the API call itself."
+  },
+  {
+    "id": "defense-evasion",
+    "title": "Defense Evasion (AMSI/ETW)",
+    "description": "Tampering with AMSI, ETW, hooks or security products.",
+    "color": "#c084fc",
+    "explanation": "APIs that security tooling itself exports and that attackers patch, unhook or disable. Handle them as monitoring targets: a non-security process touching AMSI or ETW internals is highly suspicious."
+  },
+  {
+    "id": "crypto",
+    "title": "Crypto",
+    "description": "Hashing, encryption, key handling and certificate stores (CryptoAPI, CNG).",
+    "color": "#4ade80",
+    "explanation": "Encryption is normal in browsers, installers, VPN clients and games. Suspicion rises with mass file I/O, random-looking extensions, key import from embedded blobs or use of legacy CryptoAPI in unexpected binaries."
+  },
+  {
+    "id": "registry",
+    "title": "Registry",
+    "description": "Creating, reading, modifying and deleting registry keys and values.",
+    "color": "#60a5fa",
+    "explanation": "Configuration storage, but also the backbone of persistence and defence tampering. Watch run keys, services keys, IFEO, COM hijacks and security-control keys."
+  },
+  {
+    "id": "service-control",
+    "title": "Service Control",
+    "description": "Creating, configuring, starting and stopping Windows services.",
+    "color": "#f59e0b",
+    "explanation": "The Service Control Manager is used by installers, updaters and administrators — and by malware for SYSTEM execution and persistence. Event 7045 plus service binary paths outside Program Files are key checks."
+  },
+  {
+    "id": "memory-management",
+    "title": "Memory Management",
+    "description": "Allocation, protection, mapping and inspection of virtual memory.",
+    "color": "#a3e635",
+    "explanation": "Every process allocates and protects memory. Suspicious patterns are executable private memory, protection flips from RW to RX, and memory mapped from unusual files or sections."
+  },
+  {
+    "id": "network-sockets",
+    "title": "Network / Sockets",
+    "description": "Winsock, DNS and raw IP helpers for arbitrary network I/O.",
+    "color": "#5eead4",
+    "explanation": "Low-level TCP/UDP and name resolution. Reverse shells, custom C2 protocols and port scanners show up here when they avoid WinINet/WinHTTP entirely."
+  }
+]
