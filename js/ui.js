@@ -1234,23 +1234,51 @@ export class ContributeDialog {
     return { title, body: lines.join('\n') }
   }
 
-  openIssue() {
+openIssue() {
     const entry = this.generate()
-    if (!entry) return
-    if (this.mode === 'modify' && !this.changedFields.length && !this.notesInput.value.trim()) {
-      this.statusEl.textContent = 'Make at least one change before opening a correction issue.'
+    if (!entry) {
+      // تنبيه صريح في حال كانت البيانات ناقصة وفشل التوليد
+      window.alert('Please complete all required fields validly before opening an issue. Check the status message below.')
       return
     }
-    const { title, body } = this.buildIssue(entry)
-    const url = buildGithubIssueUrl(title, body)
-    const newWindow = window.open(url, '_blank')
-    if (!newWindow) {
-      const message = 'Your browser blocked the GitHub issue tab. Allow pop-ups for this site and try again, or use Copy JSON and paste the entry into a new issue.'
-      this.statusEl.textContent = message
-      window.alert(message)
-      return
+
+    if (this.mode === 'modify') {
+      const hasChanges = Array.isArray(this.changedFields) && this.changedFields.length > 0
+      const hasNotes = this.notesInput && this.notesInput.value.trim().length > 0
+      if (!hasChanges && !hasNotes) {
+        const msg = 'Make at least one change or add a note before opening a correction issue.'
+        this.statusEl.textContent = msg
+        window.alert(msg)
+        return
+      }
     }
-    newWindow.opener = null
+
+    let title = ''
+    let body = ''
+
+    if (typeof this.buildIssue === 'function') {
+      const issueData = this.buildIssue(entry)
+      title = issueData.title
+      body = issueData.body
+    } else {
+      const apiName = entry.name || 'Unknown'
+      title = this.mode === 'modify' ? `Data Correction: ${apiName}` : `New API Contribution: ${apiName}`
+      const json = (this.preview && this.preview.value.trim()) || JSON.stringify(entry, null, 2)
+      body = ["`json", json, "```"].join("\n")
+    }
+
+    const baseUrl = "https://github.com/sameralyaghn/winapi-atlas/issues/new"
+    const url = `${baseUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`
+
+    // الطريقة الأقوى لفتح الرابط بدون مشاكل Pop-up Blocker على Vercel
+    const link = document.createElement('a')
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     this.statusEl.textContent = this.mode === 'modify'
       ? 'Opened a prefilled data-correction issue in a new tab.'
       : 'Opened a prefilled GitHub issue in a new tab.'
