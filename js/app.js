@@ -527,7 +527,7 @@ async function init() {
 
   view.setCategories(data.categories)
   buildControls()
-  contribute = new ContributeDialog({ categories: data.categories })
+  contribute = new ContributeDialog({ categories: data.categories, apis: data.apis })
   pasteDialog = new PasteImportsDialog({ onScan: applyImport })
   wireEvents()
 

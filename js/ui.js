@@ -644,9 +644,87 @@ const CONTRIBUTE_FIELDS = [
   ['related', 'Related APIs (comma separated)', 'text', 'OpenProcess, ReadProcessMemory']
 ]
 
+const CONTRIBUTE_MITRE_HELP = 'One per line: T1055 | Process Injection'
+const DEFAULT_DETECTION_SUMMARY = 'Describe what an analyst should look for.'
+
+function splitList(value) {
+  return String(value || '')
+    .split(/[,;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function parseSysmonEvents(value) {
+  return splitList(value)
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item) && item > 0 && item <= 255)
+}
+
+function parseMitreLines(value) {
+  const techniques = []
+  const invalid = []
+  for (const line of String(value || '').split(/\r?\n/)) {
+    const text = line.trim()
+    if (!text) continue
+    const match = text.match(/^(T\d{4}(?:\.\d{3})?)(?:\s*[|:-]\s*|\s+)(.+)$/i)
+    if (!match || !match[2].trim()) {
+      invalid.push(text)
+      continue
+    }
+    techniques.push({ id: match[1].toUpperCase(), name: match[2].trim() })
+  }
+  return { techniques, invalid }
+}
+
+function formatMitreLines(mitre) {
+  return (mitre || []).map((tech) => `${tech.id} | ${tech.name}`).join('\n')
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value))
+}
+
+export function buildGithubIssueUrl(title, body) {
+  return `${GITHUB_NEW_ISSUE_URL}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`
+}
+
+function comparisonValue(key, value) {
+  if (Array.isArray(value)) {
+    if (key === 'categories' || key === 'related' || key === 'aliases') return [...value].sort()
+    if (key === 'mitre') {
+      return value
+        .map((tech) => ({ id: tech.id, name: tech.name }))
+        .sort((a, b) => a.id.localeCompare(b.id))
+    }
+  }
+  if (key === 'detection' && value && typeof value === 'object') {
+    return {
+      ...value,
+      sysmon_events: Array.isArray(value.sysmon_events) ? [...value.sysmon_events].sort((a, b) => a - b) : value.sysmon_events,
+      etw_providers: Array.isArray(value.etw_providers) ? [...value.etw_providers].sort() : value.etw_providers
+    }
+  }
+  return value
+}
+
+function changedFieldNames(before, after) {
+  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
+  return [...keys]
+    .filter((key) => JSON.stringify(comparisonValue(key, before?.[key])) !== JSON.stringify(comparisonValue(key, after?.[key])))
+    .sort()
+}
+
 export class ContributeDialog {
-  constructor({ categories }) {
+  constructor({ categories, apis = [] }) {
     this.categories = categories
+    this.apis = [...apis].sort((a, b) => a.name.localeCompare(b.name))
+    this.apiByName = new Map(this.apis.map((api) => [api.name, api]))
+    this.mode = 'add'
+    this.selectedApi = null
+    this.changedFields = []
+    this.invalidMitreLines = []
+    this.existingMatches = []
+    this.existingActiveIndex = -1
     this.categoryBoxes = new Map()
     this.statusEl = h('p', { class: 'copy-status', role: 'status', 'aria-live': 'polite' })
     this.preview = h('textarea', { class: 'snippet', readonly: true, rows: '14', 'aria-label': 'Generated JSON snippet' })
@@ -664,6 +742,47 @@ export class ContributeDialog {
       return h('div', { class: 'field' }, [h('label', { for: `cf-${key}`, text: label }), input])
     })
 
+    this.existingInput = h('input', {
+      id: 'cf-existing-api',
+      type: 'search',
+      placeholder: 'Search by name, DLL or description…',
+      autocomplete: 'off',
+      role: 'combobox',
+      'aria-autocomplete': 'list',
+      'aria-expanded': 'false',
+      'aria-controls': 'cf-api-results',
+      'aria-haspopup': 'listbox'
+    })
+    this.existingResults = h('div', {
+      class: 'api-combobox-results',
+      id: 'cf-api-results',
+      role: 'listbox',
+      'aria-label': 'Matching APIs',
+      hidden: true
+    })
+    this.existingHint = h('p', { class: 'field-hint', text: 'Type to search 721 APIs. Use ↑ ↓ and Enter to choose.' })
+    this.existingInput.addEventListener('input', () => this.handleExistingInput())
+    this.existingInput.addEventListener('focus', () => this.openExistingResults())
+    this.existingInput.addEventListener('focusout', (event) => {
+      if (event.relatedTarget && this.existingField.contains(event.relatedTarget)) return
+      window.setTimeout(() => {
+        if (!this.existingField.contains(document.activeElement)) this.closeExistingResults()
+      }, 0)
+    })
+    this.existingInput.addEventListener('keydown', (event) => this.handleExistingKeydown(event))
+    this.existingInput.addEventListener('change', () => {
+      if (this.trySelectExisting()) this.closeExistingResults()
+    })
+    this.existingField = h('div', { class: 'field field-full existing-api-field is-hidden' }, [
+      h('label', { for: 'cf-existing-api', text: 'Existing API to modify' }),
+      h('div', { class: 'api-combobox' }, [
+        h('span', { class: 'api-combobox-icon', 'aria-hidden': 'true' }),
+        this.existingInput,
+        this.existingResults
+      ]),
+      this.existingHint
+    ])
+
     const catGrid = h('div', { class: 'checkgrid' }, this.categories.map((category) => {
       const box = h('input', { type: 'checkbox', value: category.id, id: `cf-cat-${category.id}` })
       this.categoryBoxes.set(category.id, box)
@@ -678,12 +797,47 @@ export class ContributeDialog {
     suspicion.value = 'medium'
     this.inputs.set('suspicion', suspicion)
 
-    const mitreId = h('input', { id: 'cf-mitre', type: 'text', placeholder: 'T1055 or T1055.012' })
-    const mitreName = h('input', { id: 'cf-mitre-name', type: 'text', placeholder: 'Process Injection' })
-    this.inputs.set('mitre_id', mitreId)
-    this.inputs.set('mitre_name', mitreName)
+    const mitre = h('textarea', { id: 'cf-mitre', rows: '3', placeholder: CONTRIBUTE_MITRE_HELP })
+    this.inputs.set('mitre', mitre)
+
+    const detectionSummary = h('textarea', { id: 'cf-detection-summary', rows: '3', placeholder: 'What should an analyst look for?' })
+    const detectionSysmon = h('input', { id: 'cf-detection-sysmon', type: 'text', placeholder: '1, 3, 11' })
+    const detectionEtw = h('input', { id: 'cf-detection-etw', type: 'text', placeholder: 'Microsoft-Windows-Kernel-Network' })
+    const detectionNotes = h('textarea', { id: 'cf-detection-notes', rows: '3', placeholder: 'Telemetry caveats, event semantics or correlation advice.' })
+    this.inputs.set('detection_summary', detectionSummary)
+    this.inputs.set('detection_sysmon', detectionSysmon)
+    this.inputs.set('detection_etw', detectionEtw)
+    this.inputs.set('detection_notes', detectionNotes)
+    this.verifiedBox = h('input', { type: 'checkbox', id: 'cf-verified' })
+    this.notesInput = h('textarea', { id: 'cf-notes', rows: '3', placeholder: 'Why is this correction needed? Add context or a source.' })
+    this.inputs.set('notes', this.notesInput)
+    this.notesField = h('div', { class: 'field field-full is-hidden' }, [
+      h('label', { for: 'cf-notes', text: 'Correction notes (optional)' }),
+      this.notesInput
+    ])
+
+    this.addModeBtn = h('button', {
+      class: 'mode-btn is-active',
+      type: 'button',
+      'aria-pressed': 'true',
+      text: 'Add new API',
+      onclick: () => this.setMode('add')
+    })
+    this.modifyModeBtn = h('button', {
+      class: 'mode-btn',
+      type: 'button',
+      'aria-pressed': 'false',
+      text: 'Modify existing API',
+      onclick: () => this.setMode('modify')
+    })
+    this.modeSwitch = h('div', { class: 'mode-switch', role: 'group', 'aria-label': 'Contribution type' }, [
+      this.addModeBtn,
+      this.modifyModeBtn
+    ])
 
     const form = h('form', { class: 'contribute-form', onsubmit: (event) => event.preventDefault() }, [
+      this.modeSwitch,
+      this.existingField,
       h('div', { class: 'form-grid' }, fields),
       h('fieldset', { class: 'fieldset' }, [
         h('legend', { text: 'Categories' }),
@@ -691,18 +845,38 @@ export class ContributeDialog {
       ]),
       h('div', { class: 'form-grid form-grid-narrow' }, [
         h('div', { class: 'field' }, [h('label', { for: 'cf-suspicion', text: 'Suspicion' }), suspicion]),
-        h('div', { class: 'field' }, [h('label', { for: 'cf-mitre', text: 'MITRE technique ID' }), mitreId]),
-        h('div', { class: 'field' }, [h('label', { for: 'cf-mitre-name', text: 'MITRE technique name' }), mitreName])
-      ])
+        h('div', { class: 'field field-full' }, [
+          h('label', { for: 'cf-mitre', text: 'MITRE techniques' }),
+          mitre,
+          h('p', { class: 'field-hint', text: CONTRIBUTE_MITRE_HELP })
+        ])
+      ]),
+      h('fieldset', { class: 'fieldset' }, [
+        h('legend', { text: 'Detection guidance' }),
+        h('div', { class: 'form-grid' }, [
+          h('div', { class: 'field field-full' }, [h('label', { for: 'cf-detection-summary', text: 'Detection summary' }), detectionSummary]),
+          h('div', { class: 'field' }, [h('label', { for: 'cf-detection-sysmon', text: 'Sysmon event IDs (comma separated)' }), detectionSysmon]),
+          h('div', { class: 'field' }, [h('label', { for: 'cf-detection-etw', text: 'ETW providers (comma separated)' }), detectionEtw]),
+          h('div', { class: 'field field-full' }, [h('label', { for: 'cf-detection-notes', text: 'Detection notes' }), detectionNotes])
+        ])
+      ]),
+      h('label', { class: 'check check-inline', for: 'cf-verified' }, [
+        this.verifiedBox,
+        h('span', { text: 'Verified against Microsoft Learn documentation' })
+      ]),
+      this.notesField
     ])
+
+    this.dialogTitle = h('h2', { class: 'dialog-title', id: 'contribute-title', text: 'Contribute an API' })
+    this.intro = h('p', { class: 'muted', text: 'Nothing is uploaded. The form builds a JSON entry you can copy or submit in a prefilled GitHub issue.' })
 
     this.dialog = h('dialog', { class: 'dialog dialog-wide', id: 'contribute-dialog', 'aria-labelledby': 'contribute-title' }, [
       h('div', { class: 'dialog-shell' }, [
         h('header', { class: 'dialog-head' }, [
-          h('h2', { class: 'dialog-title', id: 'contribute-title', text: 'Contribute an API' }),
+          this.dialogTitle,
           h('button', { class: 'dialog-close', type: 'button', 'aria-label': 'Close contribution form', text: '×', onclick: () => this.dialog.close() })
         ]),
-        h('p', { class: 'muted', text: 'Nothing is uploaded. The form builds a JSON entry you can copy or submit in a prefilled GitHub issue.' }),
+        this.intro,
         h('div', { class: 'dialog-body' }, [
           form,
           h('h3', { text: 'Generated entry' }),
@@ -731,49 +905,355 @@ export class ContributeDialog {
 
   open() {
     this.dialog.showModal()
-    this.inputs.get('name').focus()
+    if (this.mode === 'modify') this.existingInput.focus()
+    else this.inputs.get('name').focus()
+  }
+
+  setMode(mode) {
+    if (mode === this.mode) return
+    this.mode = mode
+    const modifying = mode === 'modify'
+    this.addModeBtn.classList.toggle('is-active', !modifying)
+    this.modifyModeBtn.classList.toggle('is-active', modifying)
+    this.addModeBtn.setAttribute('aria-pressed', String(!modifying))
+    this.modifyModeBtn.setAttribute('aria-pressed', String(modifying))
+    this.existingField.classList.toggle('is-hidden', !modifying)
+    this.notesField.classList.toggle('is-hidden', !modifying)
+    this.dialogTitle.textContent = modifying ? 'Modify an existing API' : 'Contribute an API'
+    this.intro.textContent = modifying
+      ? 'Pick an API from the catalog, edit its fields, then generate a data-correction issue. Nothing is uploaded.'
+      : 'Nothing is uploaded. The form builds a JSON entry you can copy or submit in a prefilled GitHub issue.'
+    this.resetForm()
+    if (modifying) this.existingInput.focus()
+    else this.inputs.get('name').focus()
+  }
+
+  resetForm() {
+    for (const [key, input] of this.inputs) {
+      if (input.tagName === 'SELECT') input.value = key === 'suspicion' ? 'medium' : ''
+      else if (input.type === 'checkbox') input.checked = false
+      else input.value = ''
+    }
+    for (const box of this.categoryBoxes.values()) box.checked = false
+    this.verifiedBox.checked = false
+    this.existingInput.value = ''
+    this.existingHint.textContent = 'Type to search 721 APIs. Use ↑ ↓ and Enter to choose.'
+    this.existingHint.classList.remove('is-selected')
+    this.closeExistingResults()
+    this.selectedApi = null
+    this.changedFields = []
+    this.invalidMitreLines = []
+    this.preview.value = ''
+    this.statusEl.textContent = ''
+  }
+
+  handleExistingInput() {
+    const previous = this.selectedApi
+    const query = this.existingInput.value.trim()
+
+    if (!query) {
+      if (previous) this.resetForm()
+      this.openExistingResults()
+      return
+    }
+
+    if (previous && query !== previous.name) {
+      this.selectedApi = null
+      this.changedFields = []
+      this.invalidMitreLines = []
+      this.preview.value = ''
+      this.existingHint.textContent = 'Type to search 721 APIs. Use ↑ ↓ and Enter to choose.'
+      this.existingHint.classList.remove('is-selected')
+      this.statusEl.textContent = 'Select an API from the list to continue editing it.'
+    }
+
+    this.openExistingResults()
+  }
+
+  openExistingResults() {
+    if (this.mode !== 'modify') return
+    this.existingResults.hidden = false
+    this.existingInput.setAttribute('aria-expanded', 'true')
+    this.renderExistingResults(this.existingInput.value)
+  }
+
+  closeExistingResults() {
+    this.existingResults.hidden = true
+    this.existingInput.setAttribute('aria-expanded', 'false')
+    this.existingInput.removeAttribute('aria-activedescendant')
+    this.existingActiveIndex = -1
+  }
+
+  renderExistingResults(rawQuery) {
+    const query = String(rawQuery || '').trim()
+    const needle = query.toLowerCase()
+    let matches = this.apis
+
+    if (needle) {
+      matches = this.apis
+        .filter((api) =>
+          api.name.toLowerCase().includes(needle) ||
+          (api.library || '').toLowerCase().includes(needle) ||
+          (api.description || '').toLowerCase().includes(needle)
+        )
+        .sort((a, b) => {
+          const aStarts = a.name.toLowerCase().startsWith(needle) ? 0 : 1
+          const bStarts = b.name.toLowerCase().startsWith(needle) ? 0 : 1
+          return aStarts - bStarts || a.name.length - b.name.length || a.name.localeCompare(b.name)
+        })
+    }
+
+    const total = matches.length
+    const visible = matches.slice(0, query ? 60 : 12)
+    this.existingMatches = visible
+    this.existingActiveIndex = visible.length ? 0 : -1
+    clear(this.existingResults)
+
+    this.existingResults.appendChild(h('div', { class: 'api-combobox-meta' }, [
+      h('span', { text: query ? `${total} ${total === 1 ? 'match' : 'matches'}` : `${this.apis.length} APIs in catalog` }),
+      h('span', { text: query ? 'Enter to select' : 'Type to filter' })
+    ]))
+
+    if (!visible.length) {
+      this.existingResults.appendChild(h('div', { class: 'api-combobox-empty' }, [
+        h('strong', { text: 'No APIs found' }),
+        h('span', { text: ` for “${query}”. Try a different name, DLL or keyword.` })
+      ]))
+      return
+    }
+
+    visible.forEach((api, index) => {
+      const option = h('button', {
+        type: 'button',
+        class: 'api-combobox-option',
+        role: 'option',
+        id: `cf-api-option-${index}`,
+        tabindex: '-1',
+        'aria-selected': String(index === this.existingActiveIndex),
+        onmousedown: (event) => event.preventDefault(),
+        onclick: () => this.chooseExistingResult(api)
+      }, [
+        h('span', { class: 'api-combobox-main' }, [
+          h('span', { class: 'api-combobox-name', text: api.name }),
+          h('span', { class: 'api-combobox-desc', text: api.description || '' })
+        ]),
+        h('span', { class: 'api-combobox-lib', text: api.library })
+      ])
+      if (this.selectedApi && this.selectedApi.name === api.name) option.classList.add('is-selected')
+      this.existingResults.appendChild(option)
+    })
+
+    if (query && total > visible.length) {
+      this.existingResults.appendChild(h('div', { class: 'api-combobox-more', text: `Showing ${visible.length} of ${total} matches — keep typing to narrow the list.` }))
+    }
+
+    this.updateActiveExisting()
+  }
+
+  updateActiveExisting() {
+    const options = [...this.existingResults.querySelectorAll('.api-combobox-option')]
+    options.forEach((option, index) => {
+      const active = index === this.existingActiveIndex
+      option.classList.toggle('is-active', active)
+      option.setAttribute('aria-selected', String(active))
+      if (active) {
+        this.existingInput.setAttribute('aria-activedescendant', option.id)
+        option.scrollIntoView({ block: 'nearest' })
+      }
+    })
+    if (this.existingActiveIndex < 0) this.existingInput.removeAttribute('aria-activedescendant')
+  }
+
+  handleExistingKeydown(event) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (this.existingResults.hidden) {
+        this.openExistingResults()
+        return
+      }
+      if (!this.existingMatches.length) return
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      this.existingActiveIndex = (this.existingActiveIndex + step + this.existingMatches.length) % this.existingMatches.length
+      this.updateActiveExisting()
+      return
+    }
+
+    if (event.key === 'Enter') {
+      if (!this.existingResults.hidden && this.existingActiveIndex >= 0) {
+        event.preventDefault()
+        this.chooseExistingResult(this.existingMatches[this.existingActiveIndex])
+      } else if (this.trySelectExisting()) {
+        event.preventDefault()
+        this.closeExistingResults()
+      }
+      return
+    }
+
+    if (event.key === 'Escape' && !this.existingResults.hidden) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.closeExistingResults()
+      return
+    }
+
+    if (event.key === 'Tab') this.closeExistingResults()
+  }
+
+  chooseExistingResult(api) {
+    this.loadExisting(api)
+  }
+
+  trySelectExisting() {
+    const api = this.apiByName.get(this.existingInput.value.trim())
+    if (!api) return false
+    this.loadExisting(api)
+    return true
+  }
+
+  loadExisting(api) {
+    this.selectedApi = api
+    this.inputs.get('name').value = api.name
+    this.inputs.get('library').value = api.library || ''
+    this.inputs.get('description').value = api.description || ''
+    this.inputs.get('docs').value = api.docs || ''
+    this.inputs.get('legit_use').value = api.legit_use || ''
+    this.inputs.get('related').value = (api.related || []).join(', ')
+    this.inputs.get('suspicion').value = ['low', 'medium', 'high'].includes(api.suspicion) ? api.suspicion : 'medium'
+    this.inputs.get('mitre').value = formatMitreLines(api.mitre)
+
+    for (const [id, box] of this.categoryBoxes) box.checked = (api.categories || []).includes(id)
+
+    const detection = api.detection || {}
+    this.inputs.get('detection_summary').value = detection.summary || ''
+    this.inputs.get('detection_sysmon').value = (detection.sysmon_events || []).join(', ')
+    this.inputs.get('detection_etw').value = (detection.etw_providers || []).join(', ')
+    this.inputs.get('detection_notes').value = detection.notes || ''
+    this.verifiedBox.checked = api.verified !== false
+
+    this.existingInput.value = api.name
+    this.existingHint.textContent = `Selected ${api.name} · ${api.library}`
+    this.existingHint.classList.add('is-selected')
+    this.closeExistingResults()
+    this.notesInput.value = ''
+    this.changedFields = []
+    this.invalidMitreLines = []
+    this.preview.value = ''
+    this.statusEl.textContent = `Loaded ${api.name}. Edit any field, then generate the correction.`
   }
 
   readEntry() {
     const value = (key) => (this.inputs.get(key)?.value || '').trim()
-    const categories = [...this.categoryBoxes.entries()].filter(([, box]) => box.checked).map(([id]) => id)
-    const addEntry = value('docs')
-    const entry = {}
-    if (value('name')) entry.name = value('name')
-    if (value('library')) entry.library = value('library')
-    if (value('description')) entry.description = value('description')
+    const selected = this.mode === 'modify' ? this.selectedApi : null
+    let categories = [...this.categoryBoxes.entries()].filter(([, box]) => box.checked).map(([id]) => id)
+    if (selected) {
+      const original = selected.categories || []
+      const same = categories.length === original.length && categories.every((id) => original.includes(id))
+      if (same) categories = [...original]
+    }
+    const entry = selected ? cloneJson(selected) : {}
+    entry.name = value('name')
+    entry.library = value('library')
+    entry.description = value('description')
     entry.categories = categories
     entry.suspicion = value('suspicion') || 'medium'
-    if (value('mitre_id') && value('mitre_name')) entry.mitre = [{ id: value('mitre_id'), name: value('mitre_name') }]
-    entry.docs = addEntry || 'https://learn.microsoft.com/en-us/search/?terms=' + encodeURIComponent(value('name'))
-    entry.detection = { summary: 'Describe what an analyst should look for.' }
-    if (value('legit_use')) entry.legit_use = value('legit_use')
-    const related = value('related').split(',').map((item) => item.trim()).filter(Boolean)
-    if (related.length) entry.related = related
-    entry.verified = false
+    const mitre = parseMitreLines(value('mitre'))
+    this.invalidMitreLines = mitre.invalid
+    entry.mitre = mitre.techniques
+    entry.docs = value('docs') || (selected && selected.docs) || 'https://learn.microsoft.com/en-us/search/?terms=' + encodeURIComponent(value('name'))
+
+    const detection = selected && selected.detection ? { ...selected.detection } : {}
+    detection.summary = value('detection_summary') || DEFAULT_DETECTION_SUMMARY
+    detection.sysmon_events = parseSysmonEvents(value('detection_sysmon'))
+    detection.etw_providers = splitList(value('detection_etw'))
+    if (value('detection_notes')) detection.notes = value('detection_notes')
+    else delete detection.notes
+    entry.detection = detection
+
+    entry.legit_use = value('legit_use')
+    entry.related = splitList(value('related'))
+    entry.verified = this.verifiedBox.checked
+    if (Array.isArray(entry.aliases) && !entry.aliases.length) delete entry.aliases
     return entry
   }
 
   generate() {
+    if (this.mode === 'modify' && !this.selectedApi) {
+      this.statusEl.textContent = 'Select an API from the catalog first.'
+      return null
+    }
     const entry = this.readEntry()
-    if (!entry.name || !entry.library || !entry.description) {
-      this.statusEl.textContent = 'Name, library and description are required.'
+    const errors = []
+    if (!entry.name) errors.push('Name is required.')
+    if (!entry.library) errors.push('Library is required.')
+    if (!entry.description) errors.push('Description is required.')
+    if (!entry.legit_use) errors.push('Legitimate use is required.')
+    if (!entry.categories.length) errors.push('Select at least one category.')
+    if (this.invalidMitreLines.length) errors.push('MITRE lines must look like “T1055 | Process Injection”.')
+    if (!/^https:\/\/learn\.microsoft\.com\/\S+$/.test(entry.docs)) errors.push('Documentation must be a learn.microsoft.com URL.')
+    if (errors.length) {
+      this.statusEl.textContent = errors.join(' ')
       return null
     }
     this.preview.value = JSON.stringify(entry, null, 2)
-    this.statusEl.textContent = 'Preview generated. Copy the JSON or open a prefilled GitHub issue.'
+    if (this.mode === 'modify' && this.selectedApi) {
+      const before = cloneJson(this.selectedApi)
+      if (Array.isArray(before.aliases) && !before.aliases.length) delete before.aliases
+      this.changedFields = changedFieldNames(before, entry)
+    } else {
+      this.changedFields = []
+    }
+    this.statusEl.textContent = this.mode === 'modify'
+      ? (this.changedFields.length
+          ? `Preview generated. ${this.changedFields.length} changed field(s): ${this.changedFields.join(', ')}.`
+          : 'Preview generated. No JSON fields changed yet.')
+      : 'Preview generated. Copy the JSON or open a prefilled GitHub issue.'
     return entry
+  }
+
+  buildIssue(entry) {
+    const modifying = this.mode === 'modify' && this.selectedApi
+    const apiName = modifying ? this.selectedApi.name : entry.name
+    const json = JSON.stringify(entry, null, 2)
+    const title = modifying ? `Data Correction: ${apiName}` : `New API Contribution: ${apiName}`
+    const lines = []
+
+    if (modifying) {
+      lines.push(`## Data correction: ${apiName}`, '')
+      lines.push(`This issue proposes a correction to the existing \`${apiName}\` entry in \`data/apis.json\`.`, '')
+      lines.push('### Changed fields', '')
+      lines.push(...(this.changedFields.length
+        ? this.changedFields.map((field) => `- \`${field}\``)
+        : ['- No JSON fields changed; see notes.']), '')
+      const notes = this.notesInput.value.trim()
+      if (notes) lines.push('### Notes', '', notes, '')
+      lines.push('### Updated JSON', '', '```json', json, '```')
+    } else {
+      lines.push('## New API contribution', '', '### Proposed JSON', '', '```json', json, '```')
+    }
+
+    return { title, body: lines.join('\n') }
   }
 
   openIssue() {
     const entry = this.generate()
     if (!entry) return
-    const issueTitle = `New API Contribution: ${this.inputs.get('name').value.trim()}`
-    const json = this.preview.value.trim() || JSON.stringify(entry, null, 2)
-    const issueBody = ['```json', json, '```'].join('\n')
-    const url = `${GITHUB_NEW_ISSUE_URL}?title=${encodeURIComponent(issueTitle)}&body=${encodeURIComponent(issueBody)}`
-    window.open(url, '_blank', 'noopener')
-    this.statusEl.textContent = 'Opened a prefilled GitHub issue in a new tab.'
+    if (this.mode === 'modify' && !this.changedFields.length && !this.notesInput.value.trim()) {
+      this.statusEl.textContent = 'Make at least one change before opening a correction issue.'
+      return
+    }
+    const { title, body } = this.buildIssue(entry)
+    const url = buildGithubIssueUrl(title, body)
+    const newWindow = window.open(url, '_blank')
+    if (!newWindow) {
+      const message = 'Your browser blocked the GitHub issue tab. Allow pop-ups for this site and try again, or use Copy JSON and paste the entry into a new issue.'
+      this.statusEl.textContent = message
+      window.alert(message)
+      return
+    }
+    newWindow.opener = null
+    this.statusEl.textContent = this.mode === 'modify'
+      ? 'Opened a prefilled data-correction issue in a new tab.'
+      : 'Opened a prefilled GitHub issue in a new tab.'
   }
 
   async copyJson() {
