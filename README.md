@@ -88,12 +88,11 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
 ```json
 {
   "name": "CreateRemoteThread",
-  "aliases": ["CreateRemoteThreadEx"],
   "library": "Kernel32.dll",
   "description": "Creates a thread that runs in the virtual address space of another process.",
   "categories": ["injection"],
   "mitre": [{ "id": "T1055", "name": "Process Injection" }],
-  "docs": "https://learn.microsoft.com/en-us/search/?terms=CreateRemoteThread",
+  "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethread",
   "detection": {
     "summary": "Remote thread creation into another process is a strong injection indicator.",
     "sysmon_events": [8],
@@ -111,16 +110,16 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
 
 | Category | APIs | Category | APIs |
 | --- | ---: | --- | ---: |
-| Helper | 212 | Enumeration | 108 |
+| Helper | 219 | Enumeration | 109 |
 | Crypto | 69 | Network / Sockets | 67 |
-| Spying | 64 | Injection | 63 |
+| Spying | 64 | Injection | 56 |
 | Memory Management | 50 | Internet | 46 |
-| Evasion | 36 | Credential Access | 36 |
-| Defense Evasion (AMSI/ETW) | 34 | Anti-Debugging | 33 |
-| Privilege Escalation | 30 | Service Control | 25 |
-| Registry | 23 | Persistence | 20 |
-| Lateral Movement | 20 | Process Hollowing | 19 |
-| Ransomware | 15 | | |
+| Evasion | 35 | Credential Access | 33 |
+| Defense Evasion (AMSI/ETW) | 21 | Anti-Debugging | 32 |
+| Privilege Escalation | 29 | Service Control | 25 |
+| Registry | 23 | Persistence | 17 |
+| Lateral Movement | 18 | Process Hollowing | 20 |
+| Ransomware | 13 | | |
 
 ---
 

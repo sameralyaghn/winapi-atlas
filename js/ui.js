@@ -8,7 +8,7 @@ import { mitreUrl } from './data.js'
 
 const ROW_HEIGHT = 84
 const OVERSCAN = 4
-const GITHUB_REPO_URL = 'https://github.com/sameralyaghn/winapi-atlas'
+const GITHUB_NEW_ISSUE_URL = 'https://github.com/sameralyaghn/winapi-atlas/issues/new'
 
 /* ------------------------------------------------------------------ */
 /* Tiny DOM helpers                                                     */
@@ -241,30 +241,6 @@ export class CatalogView {
       if (!api) continue
       column.inner.appendChild(this.buildRow(api, index, rows.length, selected.has(api.name)))
     }
-  }
-
-  /**
-   * Scrolls the first visible column that contains this entry to its card,
-   * briefly highlights it and focuses it so a freshly added draft can be
-   * opened right away. Returns false when no column currently shows it.
-   */
-  revealApi(api) {
-    if (!api) return false
-    for (const column of this.columns.values()) {
-      if (column.section.hidden) continue
-      const index = column.rows.indexOf(api)
-      if (index < 0) continue
-      column.list.scrollTop = Math.max(0, index * ROW_HEIGHT - 16)
-      this.updateWindow(column, true)
-      const row = [...column.inner.querySelectorAll('.apirow')].find((button) => button.dataset.name === api.name)
-      if (!row) continue
-      row.classList.add('row-flash')
-      row.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-      row.focus({ preventScroll: true })
-      window.setTimeout(() => row.classList.remove('row-flash'), 2600)
-      return true
-    }
-    return false
   }
 
   buildRow(api, index, total, isSelected) {
@@ -668,37 +644,12 @@ const CONTRIBUTE_FIELDS = [
   ['related', 'Related APIs (comma separated)', 'text', 'OpenProcess, ReadProcessMemory']
 ]
 
-function buildIssueText(entry) {
-  return [
-    '## New API contribution',
-    '',
-    '```json',
-    JSON.stringify(entry, null, 2),
-    '```',
-    '',
-    '### Why this belongs in the catalog',
-    '',
-    '<!-- Describe the defensive relevance: which technique category it maps to and what telemetry catches it. -->',
-    '',
-    '### Checklist',
-    '',
-    '- [ ] I verified the API exists in Microsoft Learn.',
-    '- [ ] I did not include exploit or malware code.',
-    '- [ ] Detection guidance is behavioural, not a recipe.'
-  ].join('\n')
-}
-
 export class ContributeDialog {
-  constructor({ categories, onTestLive, onClearDrafts, getDraftCount }) {
+  constructor({ categories }) {
     this.categories = categories
-    this.onTestLive = onTestLive
-    this.onClearDrafts = onClearDrafts
-    this.getDraftCount = getDraftCount || (() => 0)
     this.categoryBoxes = new Map()
     this.statusEl = h('p', { class: 'copy-status', role: 'status', 'aria-live': 'polite' })
     this.preview = h('textarea', { class: 'snippet', readonly: true, rows: '14', 'aria-label': 'Generated JSON snippet' })
-    this.testBtn = h('button', { class: 'btn', type: 'button', text: 'Test Live on Board', onclick: () => this.testLive() })
-    this.clearDraftsBtn = h('button', { class: 'btn', type: 'button', text: 'Clear local drafts', onclick: () => this.clearDrafts(), hidden: true })
     this.body = h('div', { class: 'dialog-body' })
     this.build()
   }
@@ -751,21 +702,16 @@ export class ContributeDialog {
           h('h2', { class: 'dialog-title', id: 'contribute-title', text: 'Contribute an API' }),
           h('button', { class: 'dialog-close', type: 'button', 'aria-label': 'Close contribution form', text: '×', onclick: () => this.dialog.close() })
         ]),
-        h('p', { class: 'muted', text: 'Nothing is uploaded. The form builds a JSON entry and a prefilled GitHub issue you can copy.' }),
+        h('p', { class: 'muted', text: 'Nothing is uploaded. The form builds a JSON entry you can copy or submit in a prefilled GitHub issue.' }),
         h('div', { class: 'dialog-body' }, [
           form,
           h('h3', { text: 'Generated entry' }),
           this.preview,
           h('div', { class: 'action-row' }, [
-            this.testBtn,
-            h('button', { class: 'btn btn-primary', type: 'button', text: 'Open GitHub Issue', onclick: () => this.openIssue() }),
             h('button', { class: 'btn', type: 'button', text: 'Generate preview', onclick: () => this.generate() }),
-            h('button', { class: 'btn', type: 'button', text: 'Copy issue text', onclick: () => this.copyIssue() }),
             h('button', { class: 'btn', type: 'button', text: 'Copy JSON', onclick: () => this.copyJson() }),
-            h('button', { class: 'btn', type: 'button', text: 'Download JSON', onclick: () => this.download() })
+            h('button', { class: 'btn btn-primary', type: 'button', text: 'Open GitHub Issue', onclick: () => this.openIssue() })
           ]),
-          h('div', { class: 'action-row' }, [this.clearDraftsBtn]),
-          h('p', { class: 'muted draft-note', text: 'Test Live on Board adds the entry to this browser only (localStorage) so you can inspect its card and detail dialog. Open GitHub Issue only opens a prefilled form — nothing is sent until you submit it.' }),
           this.statusEl
         ])
       ])
@@ -784,15 +730,8 @@ export class ContributeDialog {
   }
 
   open() {
-    this.syncDraftState()
     this.dialog.showModal()
     this.inputs.get('name').focus()
-  }
-
-  syncDraftState() {
-    const count = this.getDraftCount()
-    this.clearDraftsBtn.hidden = count === 0
-    this.clearDraftsBtn.textContent = `Clear local drafts (${count})`
   }
 
   readEntry() {
@@ -822,39 +761,19 @@ export class ContributeDialog {
       return null
     }
     this.preview.value = JSON.stringify(entry, null, 2)
-    this.statusEl.textContent = 'Preview generated. Test it on the board, or open a prefilled GitHub issue.'
+    this.statusEl.textContent = 'Preview generated. Copy the JSON or open a prefilled GitHub issue.'
     return entry
   }
 
   openIssue() {
     const entry = this.generate()
     if (!entry) return
-    const title = encodeURIComponent(`[API Contribution] ${entry.name}`)
-    const body = encodeURIComponent(buildIssueText(entry))
-    window.open(`${GITHUB_REPO_URL}/issues/new?title=${title}&body=${body}`, '_blank', 'noopener')
+    const issueTitle = `New API Contribution: ${this.inputs.get('name').value.trim()}`
+    const json = this.preview.value.trim() || JSON.stringify(entry, null, 2)
+    const issueBody = ['```json', json, '```'].join('\n')
+    const url = `${GITHUB_NEW_ISSUE_URL}?title=${encodeURIComponent(issueTitle)}&body=${encodeURIComponent(issueBody)}`
+    window.open(url, '_blank', 'noopener')
     this.statusEl.textContent = 'Opened a prefilled GitHub issue in a new tab.'
-  }
-
-  testLive() {
-    const entry = this.generate()
-    if (!entry) return
-    if (!entry.categories.length) {
-      this.statusEl.textContent = 'Pick at least one category so the draft has a column on the board.'
-      return
-    }
-    const result = this.onTestLive ? this.onTestLive(entry) : { ok: false, message: 'Draft testing is unavailable.' }
-    this.statusEl.textContent = result.message
-    if (result.ok) {
-      this.syncDraftState()
-      this.dialog.close()
-    }
-  }
-
-  clearDrafts() {
-    if (!this.getDraftCount()) return
-    const removed = this.onClearDrafts ? this.onClearDrafts() : 0
-    this.statusEl.textContent = `Cleared ${removed} local draft${removed === 1 ? '' : 's'}.`
-    this.syncDraftState()
   }
 
   async copyJson() {
@@ -864,25 +783,6 @@ export class ContributeDialog {
     this.statusEl.textContent = ok ? 'JSON copied to clipboard.' : 'Copy failed — copy the preview manually.'
   }
 
-  async copyIssue() {
-    const entry = this.generate()
-    if (!entry) return
-    const ok = await copyText(buildIssueText(entry))
-    this.statusEl.textContent = ok ? 'Issue text copied — paste it into a new GitHub issue.' : 'Copy failed — copy the preview manually.'
-  }
-
-  download() {
-    const entry = this.generate()
-    if (!entry) return
-    const blob = new Blob([JSON.stringify(entry, null, 2)], { type: 'application/json;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const anchor = h('a', { href: url, download: `${entry.name || 'new-api'}.json` })
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-    this.statusEl.textContent = 'JSON file downloaded.'
-  }
 }
 
 /* ------------------------------------------------------------------ */

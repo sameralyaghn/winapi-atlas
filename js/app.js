@@ -3,7 +3,7 @@
  * hash in sync and delegates rendering to js/ui.js.
  */
 
-import { buildCatalog, loadCatalog, findApi, nativeCounterpart, normalizeDraftEntry, variantApis } from './data.js'
+import { loadCatalog, findApi, nativeCounterpart, variantApis } from './data.js'
 import {
   buildCsv,
   buildJson,
@@ -32,7 +32,6 @@ import {
 import { ApiDialog, CatalogView, ContributeDialog, PasteImportsDialog, SelectionPanel, clear, h } from './ui.js'
 
 const THEME_KEY = 'winapi-atlas-theme'
-const DRAFTS_KEY = 'winapi_atlas_drafts'
 
 const dom = {
   columns: document.getElementById('columns'),
@@ -56,8 +55,6 @@ const dom = {
 }
 
 let data = null
-let baseApis = []
-let draftApis = []
 let state = emptyState()
 let activeCategory = null
 let lastWrittenHash = null
@@ -241,7 +238,6 @@ function updateStatus(filtered, visible) {
   let text = `Showing ${shown} of ${data.apis.length} APIs · ${visible.length} ${categoryWord}`
   if (state.selection.length) text += ` · ${state.selection.length} selected`
   if (state.query) text += ` · search “${state.query}”`
-  if (draftApis.length) text += ` · ${draftApis.length} local draft${draftApis.length === 1 ? '' : 's'}`
   dom.status.textContent = text
 }
 
@@ -505,99 +501,6 @@ function applyImport(text) {
   return { names, summary }
 }
 
-/* ------------------------------------------------------------------ */
-/* Local draft entries (Contribute → Test Live on Board)                */
-/* ------------------------------------------------------------------ */
-
-function rebuildData() {
-  data = buildCatalog([...baseApis, ...draftApis], data.categories, data.presets)
-}
-
-/** Reads persisted drafts, dropping anything malformed or already shipped. */
-function loadDrafts() {
-  let raw
-  try {
-    raw = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]')
-  } catch {
-    return []
-  }
-  if (!Array.isArray(raw)) return []
-  const shipped = new Set(baseApis.map((api) => api.name))
-  const seen = new Set()
-  const drafts = []
-  for (const item of raw) {
-    const entry = normalizeDraftEntry(item, data.categories)
-    if (!entry || shipped.has(entry.name) || seen.has(entry.name)) continue
-    seen.add(entry.name)
-    drafts.push(entry)
-  }
-  return drafts
-}
-
-function saveDrafts() {
-  try {
-    localStorage.setItem(DRAFTS_KEY, JSON.stringify(draftApis))
-    return true
-  } catch {
-    return false
-  }
-}
-
-/** Adds or replaces a draft, rebuilds the catalog and reveals the new card. */
-function testLiveDraft(raw) {
-  const entry = normalizeDraftEntry(raw, data.categories)
-  if (!entry) {
-    return { ok: false, message: 'Name, library, description and at least one category are required.' }
-  }
-  if (baseApis.some((api) => api.name === entry.name)) {
-    return { ok: false, message: `“${entry.name}” is already in the published catalog — use a different name for a draft.` }
-  }
-
-  const existing = draftApis.findIndex((api) => api.name === entry.name)
-  if (existing >= 0) draftApis[existing] = entry
-  else draftApis.push(entry)
-
-  rebuildData()
-  const saved = saveDrafts()
-  activeCategory = entry.categories[0]
-  // Filters could hide the new card; clear them so the draft can be reviewed.
-  state = { ...state, query: '', categories: [], libraries: [], suspicion: [], mitre: '' }
-  render()
-
-  const api = data.byName.get(entry.name)
-  // Run after the dialog closes so focus is allowed to move to the row.
-  window.setTimeout(() => view.revealApi(api), 0)
-  const categoryTitle = data.categoryById.get(entry.categories[0])?.title || entry.categories[0]
-  const storageNote = saved ? '' : ' Browser storage is unavailable, so this draft disappears on reload.'
-  dom.status.textContent = `Draft “${entry.name}” added to the ${categoryTitle} column. Click the highlighted card to test its detail modal.${storageNote}`
-  return { ok: true, message: `Draft added to the board in “${categoryTitle}”.${storageNote}` }
-}
-
-/** Removes every local draft, restoring the shipped catalog. */
-function clearLocalDrafts() {
-  const count = draftApis.length
-  if (!count) return 0
-  const draftNames = new Set(draftApis.map((api) => api.name))
-  if (state.api && draftNames.has(state.api)) apiDialog.close()
-
-  draftApis = []
-  try {
-    localStorage.removeItem(DRAFTS_KEY)
-  } catch {
-    /* storage can be unavailable in private modes */
-  }
-  rebuildData()
-  state = {
-    ...state,
-    api: state.api && data.byName.has(state.api) ? state.api : null,
-    selection: state.selection.filter((name) => data.byName.has(name))
-  }
-  if (!state.api) apiDialog.close()
-  render()
-  dom.status.textContent = `Cleared ${count} local draft${count === 1 ? '' : 's'}.`
-  return count
-}
-
 async function init() {
   const hashState = parseHash(location.hash)
   const queryState = parseQuery(location.search)
@@ -615,10 +518,6 @@ async function init() {
     return
   }
 
-  baseApis = data.apis.slice()
-  draftApis = loadDrafts()
-  if (draftApis.length) rebuildData()
-
   state = sanitizeState(state)
   activeCategory = null
   lastWrittenHash = location.hash
@@ -628,12 +527,7 @@ async function init() {
 
   view.setCategories(data.categories)
   buildControls()
-  contribute = new ContributeDialog({
-    categories: data.categories,
-    onTestLive: testLiveDraft,
-    onClearDrafts: clearLocalDrafts,
-    getDraftCount: () => draftApis.length
-  })
+  contribute = new ContributeDialog({ categories: data.categories })
   pasteDialog = new PasteImportsDialog({ onScan: applyImport })
   wireEvents()
 

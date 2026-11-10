@@ -925,24 +925,6 @@ kbd {
   font-size: 11px;
 }
 
-/* Temporary highlight for a freshly added local draft. */
-.apirow.row-flash {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--panel-2));
-  animation: row-flash 2.6s ease-out;
-}
-
-@keyframes row-flash {
-  0%,
-  55% {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent),
-      0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-
 mark {
   padding: 0 1px;
   border-radius: 2px;
@@ -1494,12 +1476,6 @@ body[data-mapping="true"] .apirow {
 
 .action-row .btn {
   font-size: 12px;
-}
-
-.draft-note {
-  margin-top: 8px;
-  font-size: 11px;
-  line-height: 1.5;
 }
 
 .form-grid {
