@@ -2134,6 +2134,8 @@ body[data-mapping="true"] .apirow {
     position: absolute;
     top: 10px;
     right: 12px;
+    border: 0;
+    background: transparent;
   }
 
   #about-btn,
