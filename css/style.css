@@ -280,6 +280,16 @@ kbd {
   justify-content: flex-end;
 }
 
+.header-actions > .btn,
+.header-actions > .export-menu > summary {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 8px;
+}
+
 .btn,
 .export-menu > summary {
   display: inline-flex;
@@ -327,6 +337,28 @@ kbd {
 .icon-btn {
   min-width: 36px;
   justify-content: center;
+}
+
+.header-actions > .icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.theme-toggle {
+  color: var(--accent);
+}
+
+.theme-icon {
+  display: block;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .export-menu {
@@ -1998,7 +2030,7 @@ body[data-mapping="true"] .apirow {
     display: none;
   }
 
-  .header-actions .btn {
+  .header-actions .btn:not(.icon-btn) {
     padding: 7px 9px;
     font-size: 11.5px;
   }
@@ -2129,7 +2161,7 @@ body[data-mapping="true"] .apirow {
     gap: 5px;
   }
 
-  .header-actions .btn {
+  .header-actions .btn:not(.icon-btn) {
     padding: 6px 8px;
     font-size: 11px;
   }
