@@ -1939,7 +1939,7 @@
     "related": [
       "CreateFileW"
     ],
-    "suspicion": "low",
+    "suspicion": "medium",
     "verified": true
   },
   {
@@ -2352,7 +2352,9 @@
     "library": "Advapi32.dll",
     "description": "ANSI variant of CreateService.",
     "categories": [
-      "service-control"
+      "service-control",
+      "persistence",
+      "privilege-escalation"
     ],
     "mitre": [
       {
@@ -4593,7 +4595,8 @@
     "library": "Kernel32.dll",
     "description": "ANSI variant of FindFirstFile.",
     "categories": [
-      "enumeration"
+      "enumeration",
+      "ransomware"
     ],
     "mitre": [
       {
@@ -4614,7 +4617,7 @@
     "related": [
       "FindFirstFileW"
     ],
-    "suspicion": "low",
+    "suspicion": "medium",
     "verified": true
   },
   {
@@ -6339,7 +6342,8 @@
     "library": "Kernel32.dll",
     "description": "ANSI variant of GetModuleFileName.",
     "categories": [
-      "helper"
+      "helper",
+      "anti-debugging"
     ],
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamea",
@@ -9442,9 +9446,15 @@
     "library": "Kernel32.dll",
     "description": "ANSI variant of LoadLibrary.",
     "categories": [
-      "helper"
+      "helper",
+      "injection"
     ],
-    "mitre": [],
+    "mitre": [
+      {
+        "id": "T1129",
+        "name": "Shared Modules"
+      }
+    ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibrarya",
     "detection": {
       "summary": "LoadLibraryA maps to Sysmon Event 7 and Microsoft-Windows-Kernel-Process; these events record the OS effect, not the API call.",
@@ -9460,7 +9470,7 @@
     "related": [
       "LoadLibraryW"
     ],
-    "suspicion": "low",
+    "suspicion": "medium",
     "verified": true
   },
   {
@@ -11933,8 +11943,8 @@
     ],
     "mitre": [
       {
-        "id": "T1055",
-        "name": "Process Injection"
+        "id": "T1055.004",
+        "name": "Process Injection: Asynchronous Procedure Call"
       }
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-queueuserapc",
@@ -12291,7 +12301,7 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/ntxxx-routines",
     "detection": {
-      "summary": "NtTestAlert has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it. (undocumented NTAPI heavily abused in early bird APC Injection",
+      "summary": "NtTestAlert has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it. (undocumented NTAPI heavily abused in early bird APC Injection)",
       "sysmon_events": [],
       "etw_providers": [],
       "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
@@ -13030,14 +13040,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-pfxexportcertstoreex",
     "detection": {
-      "summary": "PFXExportCertStoreEx maps to Sysmon Event 11 and Microsoft-Windows-Kernel-File; these events record the OS effect, not the API call.",
-      "sysmon_events": [
-        11
-      ],
-      "etw_providers": [
-        "Microsoft-Windows-Kernel-File"
-      ],
-      "notes": "Sysmon Event 11 records file creation only; opening or overwriting an existing file does not produce it. Microsoft-Windows-Kernel-File records file create, read, write, rename and close operations when enabled."
+      "summary": "PFXExportCertStoreEx has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "sysmon_events": [],
+      "etw_providers": [],
+      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
     },
     "legit_use": "Browsers, VPNs, messengers, installers, password managers and games.",
     "related": [],
@@ -14507,7 +14513,7 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/",
     "detection": {
-      "summary": "RtlCreateProcessParametersEx has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it. ( No DOCS for this API)",
+      "summary": "RtlCreateProcessParametersEx has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
       "sysmon_events": [],
       "etw_providers": [],
       "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
@@ -14534,7 +14540,7 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/",
     "detection": {
-      "summary": "RtlCreateUserThread maps to Sysmon Event 8 and Microsoft-Windows-Kernel-Process, Microsoft-Windows-Threat-Intelligence; these events record the OS effect, not the API call. (No DOCS for this API)",
+      "summary": "RtlCreateUserThread maps to Sysmon Event 8 and Microsoft-Windows-Kernel-Process, Microsoft-Windows-Threat-Intelligence; these events record the OS effect, not the API call.",
       "sysmon_events": [
         8
       ],
@@ -14566,7 +14572,7 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/",
     "detection": {
-      "summary": "RtlDestroyProcessParameters has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it. (No DOCS for this API)",
+      "summary": "RtlDestroyProcessParameters has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
       "sysmon_events": [],
       "etw_providers": [],
       "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
@@ -15159,8 +15165,7 @@
     "library": "Kernel32.dll",
     "description": "Sets file creation, access and write timestamps.",
     "categories": [
-      "evasion",
-      "ransomware"
+      "evasion"
     ],
     "mitre": [
       {
@@ -15727,7 +15732,7 @@
     "related": [
       "ShellExecuteW"
     ],
-    "suspicion": "low",
+    "suspicion": "medium",
     "verified": true
   },
   {
@@ -15808,7 +15813,7 @@
     "related": [
       "SHFileOperationW"
     ],
-    "suspicion": "low",
+    "suspicion": "medium",
     "verified": true
   },
   {
@@ -18729,7 +18734,7 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethreadex",
     "detection": {
-      "summary": "ZwCreateThreadEx maps to Sysmon Event 8 and Microsoft-Windows-Kernel-Process, Microsoft-Windows-Threat-Intelligence; these events record the OS effect, not the API call. ( No DOCS for this API)",
+      "summary": "ZwCreateThreadEx maps to Sysmon Event 8 and Microsoft-Windows-Kernel-Process, Microsoft-Windows-Threat-Intelligence; these events record the OS effect, not the API call.",
       "sysmon_events": [
         8
       ],
