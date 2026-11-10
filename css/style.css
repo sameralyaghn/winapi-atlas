@@ -2075,6 +2075,32 @@ body[data-mapping="true"] .apirow {
   }
 }
 
+@media (max-width: 768px) {
+  .app-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "brand"
+      "actions"
+      "search";
+  }
+
+  .header-actions {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .header-actions > * {
+    flex: 0 0 auto;
+  }
+
+  #about-btn,
+  .catcol-head .info-btn {
+    display: none !important;
+  }
+}
+
 @media (max-width: 560px) {
   .app-header {
     grid-template-columns: 1fr;
@@ -2106,10 +2132,6 @@ body[data-mapping="true"] .apirow {
   .header-actions .btn {
     padding: 6px 8px;
     font-size: 11px;
-  }
-
-  .header-actions #contribute-btn {
-    display: none;
   }
 
   .dialog-head,
