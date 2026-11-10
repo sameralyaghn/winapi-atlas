@@ -1,6 +1,6 @@
 # WinAPI Atlas
 
-**The detection-focused, expanded successor to [MalAPI.io](https://malapi.io/) — 721+ Windows APIs mapped to malware techniques, MITRE ATT&CK, Sysmon events, and ETW providers.**
+**The detection-focused, 721+ Windows APIs mapped to malware techniques, MITRE ATT&CK, Sysmon events, and ETW providers.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950)](LICENSE)
 [![APIs](https://img.shields.io/badge/APIs-721-38bdf8)](data/apis.json)
@@ -153,6 +153,5 @@ tests/                Unit tests for search, parsing, and exports
 ## Credits & License
 
 Created and maintained by **[Samer Al Yaghn](https://github.com/sameralyaghn)**.  
-Inspired by the original [MalAPI.io](https://malapi.io/) project by mr.d0x. Windows API names and documentation belong to Microsoft.
 
 Released under the [MIT License](LICENSE).

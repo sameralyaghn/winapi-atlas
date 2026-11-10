@@ -533,7 +533,7 @@ export class ApiDialog {
     this.metaEl.append(
       suspicionBadge(api.suspicion),
       h('span', { class: 'meta-item', text: api.library }),
-      h('span', { class: 'meta-item', text: api.verified ? 'Verified entry' : 'Unverified entry' }),
+      h('span', { class: api.verified ? 'meta-item text-green' : 'meta-item text-red', text: api.verified ? 'Verified entry' : 'Unverified entry' }),
       ...(api.aliases.length ? [h('span', { class: 'meta-item', text: `Aliases: ${api.aliases.join(', ')}` })] : [])
     )
     this.buildBody(api)

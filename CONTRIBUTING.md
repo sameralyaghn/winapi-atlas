@@ -20,17 +20,16 @@ accept exploit code, shellcode, weaponised samples or step-by-step attack instru
 ```json
 {
   "name": "VirtualAllocEx",
-  "aliases": [],
   "library": "Kernel32.dll",
   "description": "Reserves, commits or changes a region of memory inside another process.",
   "categories": ["injection", "memory-management"],
   "mitre": [{ "id": "T1055", "name": "Process Injection" }],
-  "docs": "https://learn.microsoft.com/en-us/search/?terms=VirtualAllocEx",
+  "docs": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex",
   "detection": {
     "summary": "Executable allocation in a remote process is a strong injection precursor.",
-    "sysmon_events": [8, 10],
+    "sysmon_events": [],
     "etw_providers": ["Microsoft-Windows-Threat-Intelligence"],
-    "notes": "Correlate with a following WriteProcessMemory from the same source process."
+    "notes": "Memory allocation APIs are not logged directly by Sysmon. Microsoft-Windows-Threat-Intelligence emits kernel memory events only when the provider is enabled. Correlate with a following WriteProcessMemory from the same source process."
   },
   "legit_use": "Debuggers, EDR agents, profilers and some installers.",
   "related": ["OpenProcess", "WriteProcessMemory", "VirtualProtectEx"],
