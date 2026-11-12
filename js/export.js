@@ -29,6 +29,10 @@ function etw(api) {
   return (api.detection?.etw_providers || []).join('; ')
 }
 
+function sourceList(api) {
+  return (api.sources || []).map((source) => `${source.label} <${source.url}>`).join('; ')
+}
+
 /** Escapes a value for RFC 4180 CSV. */
 export function csvCell(value) {
   const text = value == null ? '' : String(value)
@@ -44,6 +48,10 @@ const CSV_COLUMNS = [
   ['categories', categories],
   ['mitre', mitreList],
   ['docs', (api) => api.docs],
+  ['docs_kind', (api) => api.docs_kind || ''],
+  ['telemetry_coverage', (api) => api.telemetry_coverage || ''],
+  ['reviewed_at', (api) => api.reviewed_at || ''],
+  ['sources', sourceList],
   ['description', (api) => api.description],
   ['detection_summary', (api) => api.detection?.summary || ''],
   ['sysmon_events', sysmon],
@@ -133,9 +141,19 @@ export function buildSigmaHints(apis, techniques = [], categories = [], meta = {
 
   for (const match of matches) {
     const preset = match.preset || match
+    const status = match.kind === 'indicator'
+      ? (match.complete ? 'indicator_observed' : 'indicator_incomplete')
+      : match.completeOrdered
+        ? 'complete_ordered'
+        : match.complete
+          ? 'out_of_order'
+          : 'possible_sequence'
     lines.push(`  - name: ${preset.title}`)
     lines.push(`    technique: ${preset.mitre?.id || ''} ${preset.mitre?.name || ''}`.trimEnd())
     lines.push(`    match: ${match.score}%`)
+    lines.push(`    status: ${status}`)
+    if ((match.sequence || []).length) lines.push(`    sequence: [${match.sequence.join(', ')}]`)
+    if ((match.outOfOrder || []).length) lines.push(`    out_of_order: [${match.outOfOrder.join(', ')}]`)
     lines.push(`    apis: [${(match.matchedRequired || []).concat(match.matchedOptional || []).join(', ')}]`)
     if ((match.missingRequired || []).length) {
       lines.push(`    missing_required: [${match.missingRequired.join(', ')}]`)

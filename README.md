@@ -30,8 +30,9 @@
 | **Technique Categories** | Enumeration, Injection, Evasion, Spying, Internet, Anti-Debugging, Ransomware, Credential Access, Defense Evasion (AMSI/ETW), Process Hollowing, and more. |
 | **Suspicion Scoring (`LOW` / `MEDIUM` / `HIGH`)** | Indicates how notable an API is *on its own* during static triage — paired with behavioral context. |
 | **Sysmon & ETW Telemetry** | Per-API telemetry mappings (e.g., Sysmon Event IDs 8, 10, 11, 22 and ETW providers like `Microsoft-Windows-Threat-Intelligence`) for building hunt queries. |
+| **Verification & Coverage** | Direct vs related documentation, direct/indirect/no/unknown telemetry coverage, human review status, and cited sources — all filterable from the board. |
 | **Legitimate Use Context** | Documents benign software patterns (debuggers, installers, accessibility tools, DRM) so analysts don't treat every API import as malicious by default. |
-| **Interactive Mapping Mode** | Select APIs across columns to calculate per-category breakdowns and score known attack technique chains automatically. |
+| **Interactive Mapping Mode** | Select APIs across columns to calculate per-category breakdowns and score known attack technique chains with order-aware validation. |
 | **Paste Imports Analyzer** | Paste raw output from `PEStudio`, `dumpbin /imports`, `rabin2 -i`, or `strings` to automatically normalize, match, and filter the board to the matched APIs in one click. |
 | **API Variants & NTAPI Counterparts** | Shows `A`/`W`/`Ex` variants and the underlying `ntdll.dll` native syscall counterpart (e.g., `VirtualAllocEx` → `NtAllocateVirtualMemory`). |
 | **Deep Linking** | Share direct links to any API (`?api=CreateRemoteThread`) or category (`?cat=injection`). |
@@ -43,7 +44,7 @@
 
 ### 1. Search & Filter
 - Press <kbd>/</kbd> anywhere to focus the global search bar (supports API names, DLLs, MITRE IDs, and subsequence matching like `crt` → `CreateRemoteThread`).
-- Combine filters by **Library (DLL)**, **Suspicion Level**, **MITRE Technique**, and **Category**.
+- Combine filters by **Library (DLL)**, **Suspicion Level**, **MITRE Technique**, **Documentation**, **Telemetry Coverage**, **Review Status**, and **Category**.
 
 ### 2. Static Triage with "Paste Imports"
 1. Click **Paste Imports** in the top navigation bar.
@@ -102,6 +103,7 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
   "categories": ["injection"],
   "mitre": [{ "id": "T1055", "name": "Process Injection" }],
   "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethread",
+  "docs_kind": "direct",
   "detection": {
     "summary": "Remote thread creation into another process is a strong injection indicator.",
     "sysmon_events": [8],
@@ -111,13 +113,57 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
   "legit_use": "Debuggers, some installers and security tooling.",
   "related": ["VirtualAllocEx", "WriteProcessMemory", "OpenProcess"],
   "suspicion": "high",
-  "verified": true
+  "verified": true,
+  "telemetry_coverage": "indirect",
+  "reviewed_at": null,
+  "sources": []
 }
 ```
 
+### Verification & Coverage Fields
+
+| Field | Allowed values | Meaning |
+| --- | --- | --- |
+| `docs_kind` | `direct`, `related`, `none` | `direct` means the Microsoft Learn URL path names this API. `related` means the link is a related or general page, not a first-party reference for the function. `none` means no link is recorded. |
+| `telemetry_coverage` | `direct`, `indirect`, `none`, `unknown` | `direct` means a provider reports the API operation itself. `indirect` means Sysmon/ETW exposes related OS effects, not the Win32 call. `none` means no practical native coverage is recorded. `unknown` means not yet classified. |
+| `reviewed_at` | ISO date or `null` | The date a human last reviewed the entry's claims. A documentation link alone is **not** a review. |
+| `sources` | Array of `{ "label", "url" }` | Citations supporting the entry's review. URLs must use HTTPS. A review date requires at least one source, and sources require a review date. |
+
+`verified` is retained for compatibility and records only that a public Microsoft reference page exists. It is not a telemetry claim or a human-review status.
+
+The Phase 1A migration was deliberately conservative:
+
+- `docs_kind` was derived from whether the existing Microsoft Learn URL path names the API.
+- Existing Sysmon/ETW mappings were marked `indirect`; only a provider that reports the API call itself may justify `direct`.
+- Entries with no mapping were marked `none` only when their recorded detection notes explicitly say the API is not logged directly; otherwise they remained `unknown`.
+- Every existing `reviewed_at` is `null` and every `sources` array is empty. No review date, source, or direct-telemetry claim was invented.
+
+### Technique Presets (`data/presets.json`)
+
+Presets are either ordered chains or single-API indicators:
+
+```json
+{
+  "id": "classic-dll-injection",
+  "title": "Classic DLL injection",
+  "kind": "chain",
+  "mitre": { "id": "T1055.001", "name": "Process Injection: Dynamic-link Library Injection" },
+  "required": ["OpenProcess", "VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"],
+  "sequence": ["OpenProcess", "VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"],
+  "optional": ["VirtualProtectEx", "GetProcAddress", "LoadLibraryW"],
+  "defender_note": "Correlate allocation, write and remote thread creation from one source process."
+}
+```
+
+- A `chain` needs at least two `required` APIs. `sequence` must contain exactly the same APIs in the intended execution order.
+- An `indicator` has exactly one `required` API and no `sequence`. It can flag a behaviour but never claims a completed chain.
+- Chains score 60% required membership, 20% required ordering, and 20% optional coverage. Indicators score 80% required membership and 20% optional coverage.
+- Only a chain with every required API selected in sequence is labelled **Required chain complete** or used as the Chain Map header match. Partial matches are **Possible sequence**; full membership in the wrong order is **Out of order**.
+- Optional APIs do not affect required ordering.
+
 ### Dataset Coverage
 
-The validator is the source of truth for current coverage. Run `npm run validate` to print the API total, category count, technique-preset count, per-category totals, and entries marked unverified. Keep documentation free of hard-coded category totals so it cannot drift from `data/`.
+The validator is the source of truth for current coverage. Run `npm run validate` to print the API total, category count, technique-preset count, per-category totals, documentation kinds, telemetry coverage, human-reviewed entries, and the legacy `verified:false` list. Keep documentation free of hard-coded category totals so it cannot drift from `data/`.
 
 ---
 
@@ -138,13 +184,16 @@ package.json          npm scripts and supported Node version
 css/style.css         Dark/Light themes, responsive grid, modals
 js/app.js             Main controller, state & URL synchronization
 js/data.js            Catalog loader, NTAPI counterparts & variant lookup
+js/schema.js          Verification schema, labels and conservative classifiers
 js/state.js           Search, filtering, import parser & technique scoring
 js/ui.js              DOM rendering, virtualized columns & modals
 js/export.js          CSV, JSON, Markdown & Sigma-style exporters
 js/chainmap.js        Canvas chain-map layout and PNG rendering
 data/                 apis.json, categories.json, presets.json
 scripts/validate.mjs  Dataset schema & deduplication validator
-tests/                Unit tests for search, parsing, exports and chain maps
+scripts/validation.mjs  Pure validation rules used by the CLI and tests
+scripts/migrate-verification.mjs  Conservative Phase 1A metadata migration
+tests/                Unit tests for search, filters, schema, exports and chain maps
 .github/workflows/    Continuous integration
 ```
 

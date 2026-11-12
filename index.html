@@ -47,6 +47,7 @@
       "721+ Windows APIs across 19 technique categories",
       "MITRE ATT&CK technique mapping",
       "Sysmon event IDs and ETW providers per API",
+      "Documentation, telemetry coverage, review status and sources per API",
       "Mapping mode with technique-chain inference",
       "Paste imports triage for dumpbin, rabin2 and PEStudio output",
       "CSV, JSON, Markdown, Sigma-style and Chain Map PNG exports"
@@ -136,10 +137,42 @@
         </fieldset>
         <div class="filter-group">
           <label class="field-label" for="mitre-filter">MITRE technique</label>
-          <select id="mitre-filter">
+          <select id="mitre-filter" class="filter-select">
             <option value="">All techniques</option>
           </select>
         </div>
+        <fieldset class="filter-group filter-verification">
+          <legend>Verification &amp; coverage</legend>
+          <div class="filter-select-grid">
+            <label class="filter-field" for="docs-filter">
+              <span class="filter-sublabel">Documentation</span>
+              <select id="docs-filter" class="filter-select">
+                <option value="">All documentation</option>
+                <option value="direct">Direct function docs</option>
+                <option value="related">Related or generic docs</option>
+                <option value="none">No docs link</option>
+              </select>
+            </label>
+            <label class="filter-field" for="telemetry-filter">
+              <span class="filter-sublabel">Telemetry coverage</span>
+              <select id="telemetry-filter" class="filter-select">
+                <option value="">All coverage levels</option>
+                <option value="direct">Direct telemetry</option>
+                <option value="indirect">Indirect telemetry</option>
+                <option value="none">No native telemetry</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </label>
+            <label class="filter-field" for="review-filter">
+              <span class="filter-sublabel">Review status</span>
+              <select id="review-filter" class="filter-select">
+                <option value="">All review states</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="unreviewed">Unreviewed</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
         <div class="filter-actions">
           <button id="reset-filters" class="btn" type="button">Reset filters</button>
         </div>
@@ -246,9 +279,10 @@
         </p>
         <h3>Data and verification</h3>
         <p>
-          Entries marked <em>verified</em> are documented Win32 APIs with Microsoft Learn coverage. Native
-          <code>Nt*</code>/<code>Zw*</code>/<code>Rtl*</code> entries marked unverified are exported and widely
-          used, but their behaviour is not described by a public per-function reference page.
+          <strong>Documentation</strong> distinguishes a direct Microsoft Learn page from a related or generic
+          page. <strong>Telemetry coverage</strong> distinguishes direct API telemetry from indirect Sysmon/ETW
+          effects, no native coverage, and unclassified entries. <strong>Review status</strong> and cited
+          <strong>sources</strong> are shown separately; a documentation link is not treated as a human review.
         </p>
         <h3>Shareable state</h3>
         <p>

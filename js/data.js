@@ -3,6 +3,13 @@
  * API facts: everything comes from data/apis.json.
  */
 
+import {
+  DOCS_KIND_VALUES,
+  TELEMETRY_COVERAGE_VALUES,
+  classifyDocsKind,
+  classifyTelemetryCoverage
+} from './schema.js'
+
 const DATA_FILES = ['apis.json', 'categories.json', 'presets.json']
 
 async function fetchJson(url) {
@@ -31,6 +38,14 @@ export function buildCatalog(apis, categories, presets) {
     mitre: api.mitre || [],
     related: api.related || [],
     detection: api.detection || {},
+    docs_kind: DOCS_KIND_VALUES.includes(api.docs_kind)
+      ? api.docs_kind
+      : classifyDocsKind(api.name, api.docs),
+    telemetry_coverage: TELEMETRY_COVERAGE_VALUES.includes(api.telemetry_coverage)
+      ? api.telemetry_coverage
+      : classifyTelemetryCoverage(api.detection),
+    reviewed_at: typeof api.reviewed_at === 'string' && api.reviewed_at.trim() ? api.reviewed_at : null,
+    sources: Array.isArray(api.sources) ? api.sources : [],
     verified: api.verified !== false
   }))
 
@@ -162,6 +177,10 @@ export function normalizeDraftEntry(raw, categories) {
     ? raw.detection
     : { summary: 'Describe what an analyst should look for.' }
 
+  const docs = typeof raw.docs === 'string' && raw.docs.trim()
+    ? raw.docs.trim()
+    : `https://learn.microsoft.com/en-us/search/?terms=${encodeURIComponent(name)}`
+
   return {
     name,
     library,
@@ -169,10 +188,12 @@ export function normalizeDraftEntry(raw, categories) {
     categories: uniqueCategories,
     suspicion: ['low', 'medium', 'high'].includes(raw.suspicion) ? raw.suspicion : 'medium',
     mitre,
-    docs: typeof raw.docs === 'string' && raw.docs.trim()
-      ? raw.docs.trim()
-      : `https://learn.microsoft.com/en-us/search/?terms=${encodeURIComponent(name)}`,
+    docs,
+    docs_kind: classifyDocsKind(name, docs),
     detection,
+    telemetry_coverage: classifyTelemetryCoverage(detection),
+    reviewed_at: null,
+    sources: [],
     legit_use: typeof raw.legit_use === 'string' ? raw.legit_use.trim() : '',
     related: Array.isArray(raw.related)
       ? raw.related.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim())

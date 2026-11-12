@@ -78,7 +78,9 @@ export function buildChainModel(apis, categories, options = {}) {
     }
   })
 
-  const match = options.technique?.preset ? options.technique : null
+  const match = options.technique?.preset && options.technique.completeOrdered
+    ? options.technique
+    : null
   const preset = match ? match.preset : null
   const presetId = preset?.mitre?.id || ''
   const presetTitle = preset?.title || ''

@@ -27,6 +27,10 @@ const api = {
   legit_use: 'Debuggers | installers',
   related: ['OpenProcess', 'WriteProcessMemory'],
   suspicion: 'high',
+  docs_kind: 'direct',
+  telemetry_coverage: 'indirect',
+  reviewed_at: '2026-01-10',
+  sources: [{ label: 'Microsoft Learn', url: 'https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethread' }],
   verified: true
 }
 
@@ -41,6 +45,10 @@ const second = {
   legit_use: 'Every application',
   related: [],
   suspicion: 'low',
+  docs_kind: 'related',
+  telemetry_coverage: 'none',
+  reviewed_at: null,
+  sources: [],
   verified: false
 }
 
@@ -60,6 +68,11 @@ test('buildCsv writes a header, escapes fields and keeps CRLF endings', () => {
   assert.equal(lines[0].split(',')[0], 'name')
   assert.ok(lines[0].includes('sysmon_events'))
   assert.ok(lines[0].includes('etw_providers'))
+  assert.ok(lines[0].includes('docs_kind'))
+  assert.ok(lines[0].includes('telemetry_coverage'))
+  assert.ok(lines[0].includes('reviewed_at'))
+  assert.ok(lines[0].includes('sources'))
+  assert.ok(csv.includes('direct,indirect,2026-01-10,Microsoft Learn <https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethread>'))
   assert.ok(csv.includes('"Creates a thread that runs in another process, ""remotely""."'))
   assert.ok(csv.includes('CreateRemoteThread,CreateRemoteThreadEx,Kernel32.dll,high'))
   assert.ok(csv.endsWith('\r\n'))
@@ -109,6 +122,7 @@ test('buildSigmaHints includes technique chains, telemetry and category groups',
   assert.ok(sigma.includes('name: Classic DLL injection'))
   assert.ok(sigma.includes('technique: T1055.001 Process Injection: DLL Injection'))
   assert.ok(sigma.includes('match: 92%'))
+  assert.ok(sigma.includes('status: possible_sequence'))
   assert.ok(sigma.includes('sysmon: [8, 10]'))
   assert.ok(sigma.includes('etw: [Microsoft-Windows-Kernel-Process]'))
   assert.ok(sigma.includes('apis: [CreateRemoteThread]'))

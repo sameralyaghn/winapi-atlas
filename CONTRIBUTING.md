@@ -25,6 +25,7 @@ accept exploit code, shellcode, weaponised samples or step-by-step attack instru
   "categories": ["injection", "memory-management"],
   "mitre": [{ "id": "T1055", "name": "Process Injection" }],
   "docs": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex",
+  "docs_kind": "direct",
   "detection": {
     "summary": "Executable allocation in a remote process is a strong injection precursor.",
     "sysmon_events": [],
@@ -34,7 +35,10 @@ accept exploit code, shellcode, weaponised samples or step-by-step attack instru
   "legit_use": "Debuggers, EDR agents, profilers and some installers.",
   "related": ["OpenProcess", "WriteProcessMemory", "VirtualProtectEx"],
   "suspicion": "high",
-  "verified": true
+  "verified": true,
+  "telemetry_coverage": "indirect",
+  "reviewed_at": null,
+  "sources": []
 }
 ```
 
@@ -47,7 +51,16 @@ accept exploit code, shellcode, weaponised samples or step-by-step attack instru
      `network-sockets`).
    - `related` entries must exist in the dataset.
    - MITRE ids use `T####` or `T####.###`.
-   - Set `"verified": false` if you cannot cite a public Microsoft reference page for the function.
+   - `docs_kind` must be `direct`, `related`, or `none`. Use `direct` only when the linked Microsoft Learn
+     page is for this specific function. A generic or related page is `related`.
+   - `telemetry_coverage` must be `direct`, `indirect`, `none`, or `unknown`. Sysmon and ETW events that
+     describe OS effects are `indirect`. Use `direct` only when a provider reports the API call itself.
+   - `reviewed_at` is `null` unless a human has reviewed the entry's claims. If set, use an ISO date that
+     is not in the future and add at least one entry to `sources`.
+   - `sources` uses `{ "label": "...", "url": "https://..." }` objects. Do not add a review date or a
+     source you cannot substantiate.
+   - `"verified"` is a legacy documentation-presence flag, not a review status. Set it to `false` only
+     when no public Microsoft reference page exists for the function.
    - Prefer behavioural detection guidance over signatures.
 
 The **Contribute** button in the app builds this JSON for you (and a prefilled issue body) without
@@ -61,14 +74,19 @@ Add an entry to `data/presets.json`:
 {
   "id": "classic-dll-injection",
   "title": "Classic DLL injection",
+  "kind": "chain",
   "mitre": { "id": "T1055.001", "name": "Process Injection: Dynamic-link Library Injection" },
   "required": ["OpenProcess", "VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"],
+  "sequence": ["OpenProcess", "VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"],
   "optional": ["VirtualProtectEx", "GetProcAddress", "LoadLibraryW"],
   "defender_note": "Correlate allocation, write and remote thread creation from one source process."
 }
 ```
 
-- Use at least two `required` APIs so the inference is meaningful.
+- Use `"kind": "chain"` for an ordered chain with at least two `required` APIs.
+- `sequence` must list exactly the same APIs as `required`, in the intended execution order. Do not add an API just to satisfy the minimum.
+- For a single-API pattern, use `"kind": "indicator"`, exactly one `required` API, and no `sequence`.
+- Optional APIs do not affect required ordering and cannot replace a required API.
 - Every listed API must exist in `data/apis.json`.
 - An API cannot be both required and optional.
 - The defender note should describe correlation and telemetry, not a bypass.
@@ -87,6 +105,8 @@ npm run check
 - [ ] Tests pass (`npm test`).
 - [ ] `npm run check` passes locally.
 - [ ] New entries use real API names and real Microsoft Learn links.
+- [ ] `docs_kind` and `telemetry_coverage` match the evidence in the entry.
+- [ ] `reviewed_at` and `sources` are only populated for a real, cited human review.
 - [ ] Detection advice is behavioural and defensive.
 - [ ] No exploit, malware or weaponised code is included.
 - [ ] UI changes keep keyboard access, visible focus and AA contrast.

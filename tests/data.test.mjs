@@ -42,6 +42,25 @@ test('normalizeDraftEntry fills defaults for a locally drafted API', () => {
   assert.deepEqual(entry.mitre, [{ id: 'T1055', name: 'Process Injection' }])
   assert.equal(entry.detection.summary, 'Describe what an analyst should look for.')
   assert.equal(entry.docs, 'https://learn.microsoft.com/en-us/search/?terms=FooBarW')
+  assert.equal(entry.docs_kind, 'related')
+  assert.equal(entry.telemetry_coverage, 'unknown')
+  assert.equal(entry.reviewed_at, null)
+  assert.deepEqual(entry.sources, [])
+})
+
+test('normalizeDraftEntry recognises a direct documentation URL without inventing a review', () => {
+  const entry = normalizeDraftEntry({
+    name: 'VirtualAllocEx',
+    library: 'Kernel32.dll',
+    description: 'Allocates memory in another process.',
+    categories: ['injection'],
+    docs: 'https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex',
+    detection: { summary: 'Allocation.', sysmon_events: [8], etw_providers: [] }
+  }, categories)
+  assert.equal(entry.docs_kind, 'direct')
+  assert.equal(entry.telemetry_coverage, 'indirect')
+  assert.equal(entry.reviewed_at, null)
+  assert.deepEqual(entry.sources, [])
 })
 
 test('normalizeDraftEntry rejects incomplete drafts and falls back to one category', () => {

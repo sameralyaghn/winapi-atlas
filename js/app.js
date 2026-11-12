@@ -31,6 +31,7 @@ import {
   visibleCategories
 } from './state.js'
 import { ApiDialog, CatalogView, ContributeDialog, PasteImportsDialog, SelectionPanel, clear, h } from './ui.js'
+import { DOCS_KIND_VALUES, REVIEW_STATUS_VALUES, TELEMETRY_COVERAGE_VALUES } from './schema.js'
 
 const THEME_KEY = 'winapi-atlas-theme'
 
@@ -45,6 +46,9 @@ const dom = {
   suspicionFilters: document.getElementById('suspicion-filters'),
   categoryFilters: document.getElementById('category-filters'),
   mitreFilter: document.getElementById('mitre-filter'),
+  docsFilter: document.getElementById('docs-filter'),
+  telemetryFilter: document.getElementById('telemetry-filter'),
+  reviewFilter: document.getElementById('review-filter'),
   filterCount: document.getElementById('filter-count'),
   filters: document.getElementById('filters'),
   resetFilters: document.getElementById('reset-filters'),
@@ -165,6 +169,9 @@ function buildControls() {
   }
   dom.mitreFilter.value = current
   dom.mitreFilter.addEventListener('change', () => update({ mitre: dom.mitreFilter.value }))
+  dom.docsFilter.addEventListener('change', () => update({ docsKind: dom.docsFilter.value }))
+  dom.telemetryFilter.addEventListener('change', () => update({ telemetry: dom.telemetryFilter.value }))
+  dom.reviewFilter.addEventListener('change', () => update({ review: dom.reviewFilter.value }))
 }
 
 function checkedValues(container) {
@@ -182,6 +189,9 @@ function syncControls() {
     chip.setAttribute('aria-pressed', String(state.categories.includes(chip.dataset.cat)))
   }
   dom.mitreFilter.value = state.mitre
+  dom.docsFilter.value = state.docsKind
+  dom.telemetryFilter.value = state.telemetry
+  dom.reviewFilter.value = state.review
   if (document.activeElement !== dom.search) dom.search.value = state.query
   const count = activeFilterCount(state)
   dom.filterCount.textContent = String(count)
@@ -400,7 +410,8 @@ async function exportChainMapPng() {
   }
 
   const scope = selected.length ? 'selection' : 'visible'
-  const technique = matchTechniques(state.selection, data.presets)[0] || null
+  const technique = matchTechniques(state.selection, data.presets)
+    .find((match) => match.completeOrdered) || null
   const model = buildChainModel(apis, data.categories, {
     technique,
     scope,
@@ -437,6 +448,9 @@ function sanitizeState(candidate) {
     libraries: candidate.libraries.filter((name) => libraryNames.has(name)),
     suspicion: candidate.suspicion.filter((level) => SUSPICION_LEVELS.includes(level)),
     mitre: mitreIds.has(candidate.mitre) ? candidate.mitre : '',
+    docsKind: DOCS_KIND_VALUES.includes(candidate.docsKind) ? candidate.docsKind : '',
+    telemetry: TELEMETRY_COVERAGE_VALUES.includes(candidate.telemetry) ? candidate.telemetry : '',
+    review: REVIEW_STATUS_VALUES.includes(candidate.review) ? candidate.review : '',
     selection: sanitizeSelection(candidate.selection, data.byName),
     api: candidate.api && data.byName.has(candidate.api) ? candidate.api : null,
     mapping: Boolean(candidate.mapping)
@@ -476,7 +490,17 @@ function wireEvents() {
   })
   dom.resetFilters.addEventListener('click', () => {
     dom.search.value = ''
-    update({ query: '', categories: [], libraries: [], suspicion: [], mitre: '', importFilter: false })
+    update({
+      query: '',
+      categories: [],
+      libraries: [],
+      suspicion: [],
+      mitre: '',
+      docsKind: '',
+      telemetry: '',
+      review: '',
+      importFilter: false
+    })
   })
 
   for (const button of document.querySelectorAll('[data-export]')) {

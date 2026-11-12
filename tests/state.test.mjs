@@ -31,7 +31,11 @@ const apis = [
     mitre: [{ id: 'T1055', name: 'Process Injection' }],
     detection: { summary: 'Remote thread creation.', notes: 'Check start address.' },
     legit_use: 'Debuggers.',
-    suspicion: 'high'
+    suspicion: 'high',
+    docs_kind: 'direct',
+    telemetry_coverage: 'indirect',
+    reviewed_at: '2026-01-10',
+    sources: [{ label: 'Microsoft Learn', url: 'https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethread' }]
   },
   {
     name: 'VirtualAllocEx',
@@ -41,7 +45,11 @@ const apis = [
     mitre: [{ id: 'T1055', name: 'Process Injection' }],
     detection: { summary: 'Cross-process allocation.' },
     legit_use: 'Debuggers.',
-    suspicion: 'high'
+    suspicion: 'high',
+    docs_kind: 'direct',
+    telemetry_coverage: 'indirect',
+    reviewed_at: null,
+    sources: []
   },
   {
     name: 'GetAsyncKeyState',
@@ -51,7 +59,11 @@ const apis = [
     mitre: [{ id: 'T1056.001', name: 'Input Capture: Keylogging' }],
     detection: { summary: 'Polling keystrokes.' },
     legit_use: 'Accessibility tools.',
-    suspicion: 'high'
+    suspicion: 'high',
+    docs_kind: 'related',
+    telemetry_coverage: 'none',
+    reviewed_at: null,
+    sources: []
   },
   {
     name: 'MessageBoxW',
@@ -61,7 +73,11 @@ const apis = [
     mitre: [],
     detection: { summary: 'User interaction.' },
     legit_use: 'Every application.',
-    suspicion: 'low'
+    suspicion: 'low',
+    docs_kind: 'related',
+    telemetry_coverage: 'none',
+    reviewed_at: '2026-02-01',
+    sources: [{ label: 'Microsoft Learn', url: 'https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messageboxw' }]
   }
 ]
 
@@ -77,14 +93,17 @@ const presets = [
   {
     id: 'classic-injection',
     title: 'Classic injection',
+    kind: 'chain',
     mitre: { id: 'T1055.001', name: 'Process Injection: DLL Injection' },
     required: ['VirtualAllocEx', 'CreateRemoteThread'],
+    sequence: ['VirtualAllocEx', 'CreateRemoteThread'],
     optional: ['MessageBoxW'],
     defender_note: 'Correlate allocation and remote thread creation.'
   },
   {
     id: 'keylogging',
     title: 'Keylogging',
+    kind: 'indicator',
     mitre: { id: 'T1056.001', name: 'Input Capture: Keylogging' },
     required: ['GetAsyncKeyState'],
     optional: [],
@@ -98,6 +117,9 @@ test('emptyState returns the documented defaults', () => {
   assert.deepEqual(state.selection, [])
   assert.equal(state.mapping, false)
   assert.equal(state.theme, 'dark')
+  assert.equal(state.docsKind, '')
+  assert.equal(state.telemetry, '')
+  assert.equal(state.review, '')
 })
 
 test('toggleValue adds then removes a value without mutating', () => {
@@ -116,12 +138,15 @@ test('parseHash reads a short API deep link', () => {
 })
 
 test('parseHash reads every state parameter', () => {
-  const parsed = parseHash('#?q=dll%20injection&cat=injection,spying&lib=Kernel32.dll&sus=high,medium&mit=T1055&sel=A%2CB&mode=1&theme=light&api=CreateRemoteThread')
+  const parsed = parseHash('#?q=dll%20injection&cat=injection,spying&lib=Kernel32.dll&sus=high,medium&mit=T1055&docs=direct&tel=indirect&rev=reviewed&sel=A%2CB&mode=1&theme=light&api=CreateRemoteThread')
   assert.equal(parsed.query, 'dll injection')
   assert.deepEqual(parsed.categories, ['injection', 'spying'])
   assert.deepEqual(parsed.libraries, ['Kernel32.dll'])
   assert.deepEqual(parsed.suspicion, ['high', 'medium'])
   assert.equal(parsed.mitre, 'T1055')
+  assert.equal(parsed.docsKind, 'direct')
+  assert.equal(parsed.telemetry, 'indirect')
+  assert.equal(parsed.review, 'reviewed')
   assert.deepEqual(parsed.selection, ['A', 'B'])
   assert.equal(parsed.mapping, true)
   assert.equal(parsed.theme, 'light')
@@ -130,6 +155,7 @@ test('parseHash reads every state parameter', () => {
 
 test('parseHash drops invalid suspicion values', () => {
   assert.deepEqual(parseHash('#?sus=critical,high').suspicion, ['high'])
+  assert.deepEqual(parseHash('#?docs=first-party&tel=native&rev=stale'), {})
 })
 
 test('serializeState round-trips through parseHash', () => {
@@ -140,6 +166,9 @@ test('serializeState round-trips through parseHash', () => {
     libraries: ['Kernel32.dll'],
     suspicion: ['high'],
     mitre: 'T1055',
+    docsKind: 'direct',
+    telemetry: 'indirect',
+    review: 'reviewed',
     selection: ['CreateRemoteThread', 'VirtualAllocEx'],
     mapping: true,
     theme: 'light',
@@ -152,6 +181,9 @@ test('serializeState round-trips through parseHash', () => {
   assert.deepEqual(parsed.libraries, state.libraries)
   assert.deepEqual(parsed.suspicion, state.suspicion)
   assert.equal(parsed.mitre, state.mitre)
+  assert.equal(parsed.docsKind, state.docsKind)
+  assert.equal(parsed.telemetry, state.telemetry)
+  assert.equal(parsed.review, state.review)
   assert.deepEqual(parsed.selection, state.selection)
   assert.equal(parsed.mapping, true)
   assert.equal(parsed.theme, 'light')
@@ -197,6 +229,21 @@ test('filterApis sorts query results by relevance', () => {
   assert.equal(result[0].name, 'VirtualAllocEx')
 })
 
+test('filterApis applies documentation, telemetry and review facets', () => {
+  assert.deepEqual(
+    filterApis(apis, { ...emptyState(), docsKind: 'direct', telemetry: 'indirect' }).map((api) => api.name),
+    ['CreateRemoteThread', 'VirtualAllocEx']
+  )
+  assert.deepEqual(
+    filterApis(apis, { ...emptyState(), review: 'reviewed' }).map((api) => api.name),
+    ['CreateRemoteThread', 'MessageBoxW']
+  )
+  assert.deepEqual(
+    filterApis(apis, { ...emptyState(), docsKind: 'related', telemetry: 'none', review: 'unreviewed' }).map((api) => api.name),
+    ['GetAsyncKeyState']
+  )
+})
+
 test('filterApis restricts the board to an import filter and restores it when cleared', () => {
   const imported = { ...emptyState(), importFilter: true, selection: ['MessageBoxW', 'CreateRemoteThread'] }
   assert.deepEqual(filterApis(apis, imported).map((api) => api.name), ['CreateRemoteThread', 'MessageBoxW'])
@@ -237,17 +284,54 @@ test('hasBoardFilter recognises Paste Imports and an empty selection restores th
   assert.equal(hasBoardFilter(emptyState()), false)
   assert.equal(hasBoardFilter({ ...emptyState(), importFilter: true, selection: ['MessageBoxW'] }), true)
   assert.equal(hasBoardFilter({ ...emptyState(), importFilter: true, selection: [] }), false)
+  assert.equal(hasBoardFilter({ ...emptyState(), telemetry: 'none' }), true)
+  assert.equal(hasBoardFilter({ ...emptyState(), review: 'unreviewed' }), true)
 })
 
-test('scorePreset weights required APIs above optional ones', () => {
+test('scorePreset marks only the intended required order as a complete chain', () => {
+  const correct = scorePreset(presets[0], ['VirtualAllocEx', 'CreateRemoteThread'])
+  assert.equal(correct.complete, true)
+  assert.equal(correct.ordered, true)
+  assert.equal(correct.completeOrdered, true)
+  assert.deepEqual(correct.outOfOrder, [])
+  assert.equal(correct.score, 80)
+
+  const reverse = scorePreset(presets[0], ['CreateRemoteThread', 'VirtualAllocEx'])
+  assert.equal(reverse.complete, true)
+  assert.equal(reverse.ordered, false)
+  assert.equal(reverse.completeOrdered, false)
+  assert.deepEqual(reverse.outOfOrder, ['VirtualAllocEx'])
+  assert.equal(reverse.score, 60)
+})
+
+test('scorePreset does not complete a multi-required chain from one API', () => {
   const partial = scorePreset(presets[0], ['VirtualAllocEx'])
-  assert.equal(partial.score, 40)
+  assert.equal(partial.score, 30)
   assert.equal(partial.complete, false)
+  assert.equal(partial.completeOrdered, false)
+  assert.equal(partial.orderApplicable, false)
   assert.deepEqual(partial.missingRequired, ['CreateRemoteThread'])
+})
+
+test('optional APIs do not disturb the required sequence', () => {
+  const scored = scorePreset(presets[0], ['MessageBoxW', 'VirtualAllocEx', 'CreateRemoteThread'])
+  assert.equal(scored.completeOrdered, true)
+  assert.equal(scored.ordered, true)
+  assert.deepEqual(scored.outOfOrder, [])
+  assert.equal(scored.score, 100)
+})
+
+test('one-required indicator presets never claim a completed chain', () => {
+  const indicator = scorePreset(presets[1], ['GetAsyncKeyState'])
+  assert.equal(indicator.kind, 'indicator')
+  assert.equal(indicator.complete, true)
+  assert.equal(indicator.completeOrdered, false)
+  assert.equal(indicator.orderApplicable, false)
+  assert.equal(indicator.score, 80)
 
   const full = scorePreset(presets[0], ['VirtualAllocEx', 'CreateRemoteThread', 'MessageBoxW'])
   assert.equal(full.score, 100)
-  assert.equal(full.complete, true)
+  assert.equal(full.completeOrdered, true)
 })
 
 test('matchTechniques filters weak or unrelated matches and sorts by score', () => {
@@ -255,6 +339,7 @@ test('matchTechniques filters weak or unrelated matches and sorts by score', () 
   assert.equal(matches.length, 2)
   assert.equal(matches[0].preset.id, 'classic-injection')
   assert.equal(matches[0].score, 80)
+  assert.equal(matches[0].completeOrdered, true)
   assert.ok(matches.every((match) => match.matchedRequired.length > 0))
   assert.deepEqual(matchTechniques([], presets), [])
 })
@@ -286,8 +371,11 @@ test('activeFilterCount counts each active facet', () => {
     categories: ['injection'],
     libraries: ['Kernel32.dll'],
     suspicion: ['high'],
-    mitre: 'T1055'
-  }), 5)
+    mitre: 'T1055',
+    docsKind: 'direct',
+    telemetry: 'indirect',
+    review: 'reviewed'
+  }), 8)
   assert.equal(activeFilterCount({ ...emptyState(), importFilter: true, selection: ['MessageBoxW'] }), 1)
 })
 

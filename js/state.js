@@ -4,6 +4,13 @@
  * with the plain Node test runner.
  */
 
+import {
+  DOCS_KIND_VALUES,
+  REVIEW_STATUS_VALUES,
+  TELEMETRY_COVERAGE_VALUES,
+  isReviewed
+} from './schema.js'
+
 export const SUSPICION_LEVELS = ['low', 'medium', 'high']
 
 export const SUSPICION_LABEL = {
@@ -20,6 +27,9 @@ export function emptyState(theme = 'dark') {
     libraries: [],
     suspicion: [],
     mitre: '',
+    docsKind: '',
+    telemetry: '',
+    review: '',
     selection: [],
     importFilter: false,
     mapping: false,
@@ -103,6 +113,9 @@ export function matchesFilters(api, state, tokens = tokenize(state.query)) {
   if (state.libraries.length && !state.libraries.includes(api.library)) return false
   if (state.suspicion.length && !state.suspicion.includes(api.suspicion)) return false
   if (state.mitre && !(api.mitre || []).some((tech) => tech.id === state.mitre)) return false
+  if (state.docsKind && api.docs_kind !== state.docsKind) return false
+  if (state.telemetry && api.telemetry_coverage !== state.telemetry) return false
+  if (state.review && isReviewed(api) !== (state.review === 'reviewed')) return false
   if (tokens.length && scoreApi(api, tokens) === null) return false
   return true
 }
@@ -151,6 +164,9 @@ export function hasBoardFilter(state) {
     state.libraries.length ||
     state.suspicion.length ||
     state.mitre ||
+    state.docsKind ||
+    state.telemetry ||
+    state.review ||
     (state.importFilter && state.selection.length)
   )
 }
@@ -187,23 +203,62 @@ export function selectionBreakdown(selectedNames, apis, categories) {
 
 /**
  * Scores a technique preset against the selection.
- * Required APIs drive 80% of the score, optional APIs the remaining 20%.
+ *
+ * Chain presets use 60% required membership, 20% required ordering and 20%
+ * optional coverage. Indicator presets have no sequence, so their required
+ * membership is worth 80% and optional coverage 20%. A partial required match
+ * never earns order credit, and only a chain with every required API in the
+ * intended sequence can be completeOrdered.
  */
 export function scorePreset(preset, selectedNames) {
   const selected = new Set(selectedNames)
   const required = preset.required || []
   const optional = preset.optional || []
+  const kind = preset.kind || (required.length === 1 ? 'indicator' : 'chain')
+  const sequence = kind === 'chain'
+    ? (Array.isArray(preset.sequence) && preset.sequence.length ? preset.sequence : required)
+    : []
   const matchedRequired = required.filter((name) => selected.has(name))
   const matchedOptional = optional.filter((name) => selected.has(name))
+  const missingRequired = required.filter((name) => !selected.has(name))
+  const selectedRequired = selectedNames.filter((name) => required.includes(name))
+
+  let lastIndex = -1
+  const outOfOrder = []
+  for (const name of selectedRequired) {
+    const index = sequence.indexOf(name)
+    if (index === -1) continue
+    if (index < lastIndex) outOfOrder.push(name)
+    else lastIndex = index
+  }
+
+  const ordered = kind === 'chain' && outOfOrder.length === 0
+  const orderApplicable = kind === 'chain' && sequence.length > 1 && selectedRequired.length > 1
   const requiredRatio = required.length ? matchedRequired.length / required.length : 0
   const optionalRatio = optional.length ? matchedOptional.length / optional.length : 0
-  const score = Math.round(100 * (0.8 * requiredRatio + 0.2 * optionalRatio))
+  const membershipWeight = kind === 'indicator' ? 80 : 60
+  const membershipScore = Math.round(membershipWeight * requiredRatio)
+  const orderScore = orderApplicable && ordered ? 20 : 0
+  const optionalScore = Math.round(20 * optionalRatio)
+  const complete = required.length > 0 && matchedRequired.length === required.length
+  const completeOrdered = kind === 'chain' && required.length > 1 && complete && ordered
+
   return {
-    score,
+    kind,
+    score: membershipScore + orderScore + optionalScore,
+    membershipScore,
+    orderScore,
+    optionalScore,
+    sequence,
     matchedRequired,
     matchedOptional,
-    missingRequired: required.filter((name) => !selected.has(name)),
-    complete: required.length > 0 && matchedRequired.length === required.length
+    selectedRequired,
+    missingRequired,
+    ordered,
+    orderApplicable,
+    outOfOrder,
+    complete,
+    completeOrdered
   }
 }
 
@@ -211,12 +266,17 @@ export function scorePreset(preset, selectedNames) {
  * All presets worth showing for a selection, strongest first.
  * A preset needs at least one required API and a minimum score to appear.
  */
-export function matchTechniques(selectedNames, presets, minimumScore = 40) {
+export function matchTechniques(selectedNames, presets, minimumScore = 30) {
   if (!selectedNames.length) return []
   return presets
     .map((preset) => ({ preset, ...scorePreset(preset, selectedNames) }))
     .filter((match) => match.matchedRequired.length > 0 && match.score >= minimumScore)
-    .sort((a, b) => b.score - a.score || a.preset.title.localeCompare(b.preset.title))
+    .sort((a, b) =>
+      Number(b.completeOrdered) - Number(a.completeOrdered) ||
+      Number(b.complete) - Number(a.complete) ||
+      b.score - a.score ||
+      a.preset.title.localeCompare(b.preset.title)
+    )
 }
 
 /** Serialises list parameters, keeping names readable in the address bar. */
@@ -270,6 +330,9 @@ export function parseHash(hash) {
   if (params.has('lib')) out.libraries = decodeList(params.get('lib'))
   if (params.has('sus')) out.suspicion = decodeList(params.get('sus')).filter((level) => SUSPICION_LEVELS.includes(level))
   if (params.has('mit')) out.mitre = params.get('mit') || ''
+  if (params.has('docs') && DOCS_KIND_VALUES.includes(params.get('docs'))) out.docsKind = params.get('docs')
+  if (params.has('tel') && TELEMETRY_COVERAGE_VALUES.includes(params.get('tel'))) out.telemetry = params.get('tel')
+  if (params.has('rev') && REVIEW_STATUS_VALUES.includes(params.get('rev'))) out.review = params.get('rev')
   if (params.has('sel')) out.selection = decodeList(params.get('sel'))
   if (params.has('mode')) out.mapping = params.get('mode') === '1'
   if (params.has('theme')) out.theme = params.get('theme') === 'light' ? 'light' : 'dark'
@@ -285,6 +348,9 @@ export function serializeState(state) {
   if (state.libraries.length) params.set('lib', encodeList(state.libraries))
   if (state.suspicion.length) params.set('sus', state.suspicion.join(','))
   if (state.mitre) params.set('mit', state.mitre)
+  if (state.docsKind) params.set('docs', state.docsKind)
+  if (state.telemetry) params.set('tel', state.telemetry)
+  if (state.review) params.set('rev', state.review)
   if (state.selection.length) params.set('sel', encodeList(state.selection))
   if (state.mapping) params.set('mode', '1')
   if (state.theme === 'light') params.set('theme', 'light')
@@ -308,7 +374,10 @@ export function sanitizeSelection(names, byName) {
 
 /** Summary of active filters, used for counts and the reset button. */
 export function activeFilterCount(state) {
-  return state.categories.length + state.libraries.length + state.suspicion.length + (state.mitre ? 1 : 0) + (state.query ? 1 : 0) + (state.importFilter && state.selection.length ? 1 : 0)
+  return state.categories.length + state.libraries.length + state.suspicion.length +
+    (state.mitre ? 1 : 0) + (state.docsKind ? 1 : 0) + (state.telemetry ? 1 : 0) +
+    (state.review ? 1 : 0) + (state.query ? 1 : 0) +
+    (state.importFilter && state.selection.length ? 1 : 0)
 }
 
 /**

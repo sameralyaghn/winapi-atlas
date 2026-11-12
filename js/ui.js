@@ -5,6 +5,13 @@
 
 import { SUSPICION_LABEL, tokenize } from './state.js'
 import { mitreUrl } from './data.js'
+import {
+  DOCS_KIND_DESCRIPTION,
+  DOCS_KIND_LABEL,
+  TELEMETRY_COVERAGE_DESCRIPTION,
+  TELEMETRY_COVERAGE_LABEL,
+  isReviewed
+} from './schema.js'
 
 const ROW_HEIGHT = 84
 const OVERSCAN = 4
@@ -73,6 +80,15 @@ export function suspicionBadge(level) {
     dataset: { level },
     text: SUSPICION_LABEL[level] || level,
     title: `Suspicion: ${SUSPICION_LABEL[level] || level}`
+  })
+}
+
+function verificationBadge(kind, value, text, description) {
+  return h('span', {
+    class: `badge badge-${kind}`,
+    dataset: { value },
+    title: description,
+    text
   })
 }
 
@@ -426,6 +442,38 @@ export class SelectionPanel {
   buildTechnique(match) {
     const preset = match.preset
     const percent = `${match.score}%`
+    const indicator = match.kind === 'indicator'
+    let statusKey = 'possible'
+    let statusText = 'Possible sequence'
+    let statusReason = `${match.matchedRequired.length}/${preset.required.length} required APIs matched.`
+
+    if (indicator) {
+      statusKey = 'indicator'
+      statusText = match.complete ? 'Indicator observed' : 'Indicator incomplete'
+      statusReason = match.complete
+        ? 'Single-API indicator; this is not a completed chain.'
+        : 'The indicator API has not been selected.'
+    } else if (match.completeOrdered) {
+      statusKey = 'complete'
+      statusText = 'Required chain complete'
+      statusReason = 'All required APIs are selected in the intended sequence.'
+    } else if (match.complete) {
+      statusKey = 'out-of-order'
+      statusText = 'Out of order'
+      const outOfOrderText = match.outOfOrder.length === 1
+        ? `${match.outOfOrder[0]} is`
+        : `${match.outOfOrder.join(', ')} are`
+      statusReason = match.outOfOrder.length
+        ? `All required APIs are present, but ${outOfOrderText} out of sequence. Expected: ${match.sequence.join(' → ')}.`
+        : `All required APIs are present, but the selection differs from the intended sequence: ${match.sequence.join(' → ')}.`
+    } else if (match.orderApplicable) {
+      statusReason = `${match.matchedRequired.length}/${preset.required.length} required APIs matched; ${match.ordered ? 'the selected required APIs are in sequence.' : 'the selected required APIs are not in sequence.'}`
+    }
+
+    const scoreReason = indicator
+      ? `Score: ${match.membershipScore}% indicator membership + ${match.optionalScore}% optional.`
+      : `Score: ${match.membershipScore}% membership + ${match.orderScore}% order + ${match.optionalScore}% optional.`
+
     return h('li', { class: 'tech' }, [
       h('div', { class: 'tech-head' }, [
         h('span', { class: 'tech-title', text: preset.title }),
@@ -441,8 +489,9 @@ export class SelectionPanel {
       }, h('span', { class: 'score-fill', style: { width: percent } })),
       h('div', { class: 'tech-meta' }, [
         externalLink(mitreUrl(preset.mitre.id), `${preset.mitre.id} ${preset.mitre.name}`, 'tech-mitre'),
-        h('span', { class: 'tech-complete', text: match.complete ? 'Required chain complete' : `${match.matchedRequired.length}/${preset.required.length} required` })
+        h('span', { class: 'tech-complete', dataset: { status: statusKey }, text: statusText })
       ]),
+      h('p', { class: 'tech-why', text: `${statusReason} ${scoreReason}` }),
       match.missingRequired.length
         ? h('p', { class: 'tech-missing', text: `Missing: ${match.missingRequired.join(', ')}` })
         : null,
@@ -525,10 +574,28 @@ export class ApiDialog {
     this.titleEl.textContent = api.name
     this.dialog.setAttribute('aria-label', `${api.name} details`)
     clear(this.metaEl)
+    const reviewed = isReviewed(api)
     this.metaEl.append(
       suspicionBadge(api.suspicion),
       h('span', { class: 'meta-item', text: api.library }),
-      h('span', { class: api.verified ? 'meta-item text-green' : 'meta-item text-red', text: api.verified ? 'Verified entry' : 'Unverified entry' }),
+      verificationBadge(
+        'docs',
+        api.docs_kind,
+        DOCS_KIND_LABEL[api.docs_kind] || api.docs_kind,
+        DOCS_KIND_DESCRIPTION[api.docs_kind]
+      ),
+      verificationBadge(
+        'telemetry',
+        api.telemetry_coverage,
+        TELEMETRY_COVERAGE_LABEL[api.telemetry_coverage] || api.telemetry_coverage,
+        TELEMETRY_COVERAGE_DESCRIPTION[api.telemetry_coverage]
+      ),
+      verificationBadge(
+        'review',
+        reviewed ? 'reviewed' : 'unreviewed',
+        reviewed ? `Reviewed ${api.reviewed_at}` : 'Unreviewed',
+        reviewed ? 'A human review date is recorded for this entry.' : 'This entry has no recorded human review date.'
+      ),
       ...(api.aliases.length ? [h('span', { class: 'meta-item', text: `Aliases: ${api.aliases.join(', ')}` })] : [])
     )
     this.buildBody(api)
@@ -564,7 +631,7 @@ export class ApiDialog {
     const api = this.current
     const text = format === 'json'
       ? JSON.stringify(api, null, 2)
-      : `### ${api.name}\n\n- **Library:** ${api.library}\n- **Suspicion:** ${api.suspicion}\n- **Categories:** ${api.categories.join(', ')}\n- **MITRE:** ${api.mitre.map((tech) => `${tech.id} ${tech.name}`).join(', ') || 'n/a'}\n- **Docs:** ${api.docs}\n\n${api.description}\n\n**Detection.** ${api.detection?.summary || ''}\n\n**Legitimate use.** ${api.legit_use || ''}\n`
+      : `### ${api.name}\n\n- **Library:** ${api.library}\n- **Suspicion:** ${api.suspicion}\n- **Categories:** ${api.categories.join(', ')}\n- **MITRE:** ${api.mitre.map((tech) => `${tech.id} ${tech.name}`).join(', ') || 'n/a'}\n- **Docs:** ${api.docs}\n- **Docs coverage:** ${DOCS_KIND_LABEL[api.docs_kind] || api.docs_kind}\n- **Telemetry coverage:** ${TELEMETRY_COVERAGE_LABEL[api.telemetry_coverage] || api.telemetry_coverage}\n- **Review:** ${isReviewed(api) ? api.reviewed_at : 'not yet reviewed'}\n\n${api.description}\n\n**Detection.** ${api.detection?.summary || ''}\n\n**Legitimate use.** ${api.legit_use || ''}\n`
     const ok = await copyText(text)
     this.statusEl.textContent = ok ? `Copied ${format.toUpperCase()} to clipboard.` : 'Copy failed — select the text manually.'
   }
@@ -626,6 +693,27 @@ export class ApiDialog {
     ]))
 
     this.bodyEl.appendChild(h('section', { class: 'dialog-section' }, [
+      h('h3', { text: 'Verification & sources' }),
+      h('p', {}, [
+        h('strong', { text: 'Documentation: ' }),
+        DOCS_KIND_DESCRIPTION[api.docs_kind] || DOCS_KIND_DESCRIPTION.none
+      ]),
+      h('p', {}, [
+        h('strong', { text: 'Telemetry coverage: ' }),
+        TELEMETRY_COVERAGE_DESCRIPTION[api.telemetry_coverage] || TELEMETRY_COVERAGE_DESCRIPTION.unknown
+      ]),
+      h('p', {}, [
+        h('strong', { text: 'Human review: ' }),
+        isReviewed(api) ? api.reviewed_at : 'No review date recorded yet.'
+      ]),
+      api.sources?.length
+        ? h('ul', { class: 'link-list' }, api.sources.map((source) =>
+            h('li', {}, externalLink(source.url, source.label))
+          ))
+        : h('p', { class: 'muted', text: 'No review sources recorded yet.' })
+    ]))
+
+    this.bodyEl.appendChild(h('section', { class: 'dialog-section' }, [
       h('h3', { text: 'Legitimate use' }),
       h('p', { text: api.legit_use || 'Not recorded.' })
     ]))
@@ -645,7 +733,13 @@ export class ApiDialog {
     }
 
     this.bodyEl.appendChild(h('p', { class: 'dialog-docs' }, [
-      externalLink(api.docs, 'Microsoft Learn documentation', 'text-link')
+      api.docs
+        ? externalLink(
+            api.docs,
+            api.docs_kind === 'direct' ? 'Microsoft Learn documentation' : 'Related Microsoft Learn page',
+            'text-link'
+          )
+        : h('span', { class: 'muted', text: 'No documentation link recorded.' })
     ]))
   }
 }
@@ -881,7 +975,7 @@ export class ContributeDialog {
       ]),
       h('label', { class: 'check check-inline', for: 'cf-verified' }, [
         this.verifiedBox,
-        h('span', { text: 'Verified against Microsoft Learn documentation' })
+        h('span', { text: 'A Microsoft Learn reference page exists for this function' })
       ]),
       this.notesField
     ])

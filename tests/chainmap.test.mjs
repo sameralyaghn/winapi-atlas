@@ -67,6 +67,7 @@ test('chain map appends a matched preset to the title', () => {
     scope: 'selection',
     technique: {
       score: 80,
+      completeOrdered: true,
       preset: {
         title: 'Classic DLL injection',
         mitre: { id: 'T1055.001', name: 'Process Injection: DLL Injection' }
@@ -79,6 +80,23 @@ test('chain map appends a matched preset to the title', () => {
   )
   assert.equal(model.presetScore, 80)
   assert.ok(model.subtitle.includes('click order'))
+})
+
+test('chain map does not headline a partial or out-of-order preset', () => {
+  const model = buildChainModel(apis, categories, {
+    scope: 'selection',
+    technique: {
+      score: 60,
+      completeOrdered: false,
+      preset: {
+        title: 'Classic DLL injection',
+        mitre: { id: 'T1055.001', name: 'Process Injection: Dynamic-link Library Injection' }
+      }
+    }
+  })
+  assert.equal(model.title, 'WinAPI Atlas — API Execution Chain')
+  assert.equal(model.presetTitle, '')
+  assert.equal(model.presetScore, null)
 })
 
 test('chain map states the visible-view cap in the subtitle', () => {
