@@ -27,15 +27,15 @@
 | Feature | What it gives you |
 | --- | --- |
 | **721+ Windows APIs** | Real exports from `Kernel32`, `Ntdll`, `Advapi32`, `User32`, `Gdi32`, `Wininet`, `Winhttp`, `Ws2_32`, `Crypt32`, `Bcrypt`, `Amsi`, and more. |
-| **19 Technique Categories** | Enumeration, Injection, Evasion, Spying, Internet, Anti-Debugging, Ransomware, Credential Access, Defense Evasion (AMSI/ETW), Process Hollowing, and more. |
+| **Technique Categories** | Enumeration, Injection, Evasion, Spying, Internet, Anti-Debugging, Ransomware, Credential Access, Defense Evasion (AMSI/ETW), Process Hollowing, and more. |
 | **Suspicion Scoring (`LOW` / `MEDIUM` / `HIGH`)** | Indicates how notable an API is *on its own* during static triage — paired with behavioral context. |
 | **Sysmon & ETW Telemetry** | Per-API telemetry mappings (e.g., Sysmon Event IDs 8, 10, 11, 22 and ETW providers like `Microsoft-Windows-Threat-Intelligence`) for building hunt queries. |
 | **Legitimate Use Context** | Documents benign software patterns (debuggers, installers, accessibility tools, DRM) so analysts don't treat every API import as malicious by default. |
 | **Interactive Mapping Mode** | Select APIs across columns to calculate per-category breakdowns and score known attack technique chains automatically. |
-| **Paste Imports Analyzer** | Paste raw output from `PEStudio`, `dumpbin /imports`, `rabin2 -i`, or `strings` to automatically normalize, match, and highlight APIs on the board in one click. |
+| **Paste Imports Analyzer** | Paste raw output from `PEStudio`, `dumpbin /imports`, `rabin2 -i`, or `strings` to automatically normalize, match, and filter the board to the matched APIs in one click. |
 | **API Variants & NTAPI Counterparts** | Shows `A`/`W`/`Ex` variants and the underlying `ntdll.dll` native syscall counterpart (e.g., `VirtualAllocEx` → `NtAllocateVirtualMemory`). |
 | **Deep Linking** | Share direct links to any API (`?api=CreateRemoteThread`) or category (`?cat=injection`). |
-| **Multi-Format Exports** | Export mapped selections or filtered views to **CSV**, **JSON**, **Markdown**, or **Sigma-style hunting hints**. |
+| **Multi-Format Exports** | Export mapped selections or filtered views to **CSV**, **JSON**, **Markdown**, **Sigma-style hunting hints**, or a visual **Chain Map (PNG)**. |
 
 ---
 
@@ -48,10 +48,15 @@
 ### 2. Static Triage with "Paste Imports"
 1. Click **Paste Imports** in the top navigation bar.
 2. Paste the raw import table or string dump from your analysis tool (`PEStudio`, `dumpbin`, `rabin2`, `objdump`, etc.).
-3. WinAPI Atlas strips decorations (`__imp_`, `@16`, `A`/`W` suffixes), activates **Mapping Mode**, highlights all matched APIs, and summarizes the top behavioral categories.
+3. WinAPI Atlas strips decorations (`__imp_`, `@16`, `A`/`W` suffixes), activates **Mapping Mode**, filters the board to the matched APIs, and summarizes the top behavioral categories.
 
 ### 3. Exporting Reports
-With your APIs selected in Mapping Mode, click **Export** to download your findings as a Markdown table (for incident/malware reports), JSON/CSV, or Sigma-style detection notes.
+With your APIs selected in Mapping Mode, click **Export** to download your findings as a Markdown table (for incident/malware reports), JSON/CSV, Sigma-style detection notes, or an ordered **Chain Map (PNG)** for visual reporting.
+
+### 4. Correct an Existing Entry
+1. Click **Contribute** in the top bar and choose **Modify existing API**.
+2. Search the catalog by API name, DLL or description, select the entry, then edit any field that needs correction.
+3. Generate the preview or open a prefilled GitHub issue. The form runs locally; nothing is uploaded by the app.
 
 ---
 
@@ -63,10 +68,13 @@ WinAPI Atlas is built with vanilla HTML, CSS, and ES Modules with **zero externa
 git clone https://github.com/sameralyaghn/winapi-atlas.git
 cd winapi-atlas
 
-# Option 1: Built-in zero-dependency Node server
-node scripts/serve.mjs          # Opens at http://localhost:8000
+# Option 1: npm script
+npm run dev                     # Serves http://localhost:8000
 
-# Option 2: Python HTTP server
+# Option 2: Built-in zero-dependency Node server
+node scripts/serve.mjs
+
+# Option 3: Python HTTP server
 python -m http.server 8000
 ```
 
@@ -75,9 +83,10 @@ python -m http.server 8000
 To verify dataset integrity (checking for duplicate APIs, broken references, or schema errors) and run the unit test suite:
 
 ```bash
-node scripts/validate.mjs
-node --test tests/
+npm run check
 ```
+
+`npm run validate` runs the dataset validator, `npm test` runs the unit tests, and `npm run check` runs both. The same checks run in CI on every push and pull request.
 
 ---
 
@@ -106,20 +115,9 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
 }
 ```
 
-### Dataset Breakdown (19 Categories)
+### Dataset Coverage
 
-| Category | APIs | Category | APIs |
-| --- | ---: | --- | ---: |
-| Helper | 219 | Enumeration | 109 |
-| Crypto | 69 | Network / Sockets | 67 |
-| Spying | 64 | Injection | 56 |
-| Memory Management | 50 | Internet | 46 |
-| Evasion | 35 | Credential Access | 33 |
-| Defense Evasion (AMSI/ETW) | 21 | Anti-Debugging | 32 |
-| Privilege Escalation | 29 | Service Control | 25 |
-| Registry | 23 | Persistence | 17 |
-| Lateral Movement | 18 | Process Hollowing | 20 |
-| Ransomware | 13 | | |
+The validator is the source of truth for current coverage. Run `npm run validate` to print the API total, category count, technique-preset count, per-category totals, and entries marked unverified. Keep documentation free of hard-coded category totals so it cannot drift from `data/`.
 
 ---
 
@@ -127,8 +125,8 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
 
 Community contributions (new Windows APIs, deeper Sysmon/ETW detection notes, or direct Microsoft Learn links) are welcome!
 
-1. **In-App Builder:** Click **Contribute** in the top bar of [WinAPI Atlas](https://winapi-atlas.vercel.app/) to fill out the API details, preview the card live on your board (**Test Live on Board**), and click **Open GitHub Issue** to submit the generated JSON in one click.
-2. **Pull Requests:** Add or update entries in `data/apis.json`, run `node scripts/validate.mjs` to ensure zero duplicates or schema errors, and open a PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for full details.
+1. **In-App Builder:** Click **Contribute** in the top bar of [WinAPI Atlas](https://winapi-atlas.vercel.app/) to add a new API or correct an existing one. Review the generated entry, then click **Open GitHub Issue** to submit the JSON in one click. Nothing is uploaded by the app.
+2. **Pull Requests:** Add or update entries in `data/apis.json`, run `npm run check` to validate the dataset and unit tests, and open a PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for full details.
 
 ---
 
@@ -136,15 +134,18 @@ Community contributions (new Windows APIs, deeper Sysmon/ETW detection notes, or
 
 ```text
 index.html            App shell & SEO metadata
+package.json          npm scripts and supported Node version
 css/style.css         Dark/Light themes, responsive grid, modals
 js/app.js             Main controller, state & URL synchronization
 js/data.js            Catalog loader, NTAPI counterparts & variant lookup
 js/state.js           Search, filtering, import parser & technique scoring
 js/ui.js              DOM rendering, virtualized columns & modals
 js/export.js          CSV, JSON, Markdown & Sigma-style exporters
+js/chainmap.js        Canvas chain-map layout and PNG rendering
 data/                 apis.json, categories.json, presets.json
 scripts/validate.mjs  Dataset schema & deduplication validator
-tests/                Unit tests for search, parsing, and exports
+tests/                Unit tests for search, parsing, exports and chain maps
+.github/workflows/    Continuous integration
 ```
 
 ---

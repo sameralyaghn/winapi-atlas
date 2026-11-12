@@ -76,16 +76,16 @@ Add an entry to `data/presets.json`:
 ## Validate before opening a PR
 
 ```bash
-node scripts/validate.mjs
-node --test tests/
+npm run check
 ```
 
-Both must pass. `validate.mjs` exits with a non-zero status and lists every error it finds.
+`npm run check` runs the dataset validator and the unit test suite. CI runs the same command on every push and pull request, and both must pass. You can also run each step separately with `npm run validate` and `npm test`.
 
 ## PR checklist
 
-- [ ] `data/apis.json` parses and `node scripts/validate.mjs` reports 0 errors.
-- [ ] Tests pass (`node --test tests/`).
+- [ ] `data/apis.json` parses and `npm run validate` reports 0 errors.
+- [ ] Tests pass (`npm test`).
+- [ ] `npm run check` passes locally.
 - [ ] New entries use real API names and real Microsoft Learn links.
 - [ ] Detection advice is behavioural and defensive.
 - [ ] No exploit, malware or weaponised code is included.

@@ -126,6 +126,7 @@ export class CatalogView {
   setCategories(categories) {
     clear(this.root)
     this.columns.clear()
+    this.emptyPanel = null
     this.categories = categories
     for (const category of categories) this.root.appendChild(this.buildColumn(category))
   }
@@ -193,8 +194,12 @@ export class CatalogView {
   }
 
   /** Renders filtered groups for the current state. */
-  render(state, groups) {
-    const visible = new Set(state.categories.length ? state.categories : this.categories.map((cat) => cat.id))
+  render(state, groups, visibleCategories = null) {
+    const visible = new Set(
+      (visibleCategories || (state.categories.length
+        ? this.categories.filter((category) => state.categories.includes(category.id))
+        : this.categories)).map((category) => category.id)
+    )
     this.currentSelection = state.selection
     this.tokens = tokenize(state.query)
     this.selectionKey = [...state.selection].sort().join('|')
@@ -209,6 +214,19 @@ export class CatalogView {
       column.list.setAttribute('aria-label', `${this.labelFor(id)}: ${rows.length} APIs`)
       if (isVisible) this.updateWindow(column, true)
     }
+  }
+
+  /** Shows the board-level empty state when every category column is empty. */
+  setEmpty(show) {
+    if (show && !this.emptyPanel) {
+      this.emptyPanel = h('div', { class: 'board-empty' }, [
+        h('span', { class: 'board-empty-mark', 'aria-hidden': 'true', text: '∅' }),
+        h('h2', { text: 'No matching APIs found.' }),
+        h('p', { text: 'Try clearing your search or filters.' })
+      ])
+      this.root.appendChild(this.emptyPanel)
+    }
+    if (this.emptyPanel) this.emptyPanel.hidden = !show
   }
 
   labelFor(id) {
@@ -338,7 +356,8 @@ export class SelectionPanel {
       ['csv', 'CSV'],
       ['json', 'JSON'],
       ['markdown', 'Markdown'],
-      ['sigma', 'Sigma hints']
+      ['sigma', 'Sigma hints'],
+      ['png', 'Chain Map (PNG)']
     ]
     this.exportNote = h('p', { class: 'export-note', text: 'Exports use the selection when one exists.' })
     return h('div', { class: 'export-block' }, [

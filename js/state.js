@@ -21,6 +21,7 @@ export function emptyState(theme = 'dark') {
     suspicion: [],
     mitre: '',
     selection: [],
+    importFilter: false,
     mapping: false,
     theme,
     api: null
@@ -109,8 +110,12 @@ export function matchesFilters(api, state, tokens = tokenize(state.query)) {
 /** Filters and sorts the catalog for the current state. */
 export function filterApis(apis, state) {
   const tokens = tokenize(state.query)
+  const imported = state.importFilter && state.selection.length
+    ? new Set(state.selection)
+    : null
   const matched = []
   for (const api of apis) {
+    if (imported && !imported.has(api.name)) continue
     if (!matchesFilters(api, state, tokens)) continue
     matched.push(api)
   }
@@ -138,10 +143,28 @@ export function groupByCategory(apis, categories) {
   return groups
 }
 
-/** Categories that should currently be rendered as columns. */
-export function visibleCategories(categories, state) {
-  if (!state.categories.length) return categories
-  return categories.filter((category) => state.categories.includes(category.id))
+/** True when the board is narrowed by a search, a facet or Paste Imports. */
+export function hasBoardFilter(state) {
+  return Boolean(
+    state.query.trim() ||
+    state.categories.length ||
+    state.libraries.length ||
+    state.suspicion.length ||
+    state.mitre ||
+    (state.importFilter && state.selection.length)
+  )
+}
+
+/**
+ * Categories that should currently be rendered as columns. When a filter is
+ * active and groups are supplied, zero-result categories are dropped too.
+ */
+export function visibleCategories(categories, state, groups = null) {
+  const scoped = state.categories.length
+    ? categories.filter((category) => state.categories.includes(category.id))
+    : categories
+  if (!groups || !hasBoardFilter(state)) return scoped
+  return scoped.filter((category) => (groups.get(category.id) || []).length > 0)
 }
 
 /** Counts the selection per category, in catalog column order. */
@@ -285,7 +308,7 @@ export function sanitizeSelection(names, byName) {
 
 /** Summary of active filters, used for counts and the reset button. */
 export function activeFilterCount(state) {
-  return state.categories.length + state.libraries.length + state.suspicion.length + (state.mitre ? 1 : 0) + (state.query ? 1 : 0)
+  return state.categories.length + state.libraries.length + state.suspicion.length + (state.mitre ? 1 : 0) + (state.query ? 1 : 0) + (state.importFilter && state.selection.length ? 1 : 0)
 }
 
 /**

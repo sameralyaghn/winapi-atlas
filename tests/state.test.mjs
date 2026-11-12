@@ -6,6 +6,7 @@ import {
   emptyState,
   filterApis,
   groupByCategory,
+  hasBoardFilter,
   matchImportNames,
   matchTechniques,
   parseHash,
@@ -196,6 +197,12 @@ test('filterApis sorts query results by relevance', () => {
   assert.equal(result[0].name, 'VirtualAllocEx')
 })
 
+test('filterApis restricts the board to an import filter and restores it when cleared', () => {
+  const imported = { ...emptyState(), importFilter: true, selection: ['MessageBoxW', 'CreateRemoteThread'] }
+  assert.deepEqual(filterApis(apis, imported).map((api) => api.name), ['CreateRemoteThread', 'MessageBoxW'])
+  assert.deepEqual(filterApis(apis, { ...imported, importFilter: false }).map((api) => api.name).length, apis.length)
+})
+
 test('groupByCategory puts an API in every assigned column', () => {
   const groups = groupByCategory(apis, categories)
   assert.deepEqual(groups.get('injection').map((api) => api.name), ['CreateRemoteThread', 'VirtualAllocEx'])
@@ -210,6 +217,26 @@ test('visibleCategories respects the category filter', () => {
     visibleCategories(categories, { ...emptyState(), categories: ['spying'] }).map((category) => category.id),
     ['spying']
   )
+})
+
+test('visibleCategories hides zero-result columns only while a filter is active', () => {
+  const filteredState = { ...emptyState(), query: 'messagebox' }
+  const groups = groupByCategory(filterApis(apis, filteredState), categories)
+  assert.deepEqual(
+    visibleCategories(categories, filteredState, groups).map((category) => category.id),
+    ['helper']
+  )
+  assert.deepEqual(
+    visibleCategories(categories, { ...emptyState(), query: 'no such api' }, groupByCategory([], categories)),
+    []
+  )
+  assert.equal(visibleCategories(categories, emptyState(), groups).length, categories.length)
+})
+
+test('hasBoardFilter recognises Paste Imports and an empty selection restores the board', () => {
+  assert.equal(hasBoardFilter(emptyState()), false)
+  assert.equal(hasBoardFilter({ ...emptyState(), importFilter: true, selection: ['MessageBoxW'] }), true)
+  assert.equal(hasBoardFilter({ ...emptyState(), importFilter: true, selection: [] }), false)
 })
 
 test('scorePreset weights required APIs above optional ones', () => {
@@ -261,6 +288,7 @@ test('activeFilterCount counts each active facet', () => {
     suspicion: ['high'],
     mitre: 'T1055'
   }), 5)
+  assert.equal(activeFilterCount({ ...emptyState(), importFilter: true, selection: ['MessageBoxW'] }), 1)
 })
 
 test('matchImportNames finds decorated, variant and __imp_ imports', () => {

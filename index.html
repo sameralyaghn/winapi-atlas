@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
-  <title>WinAPI Atlas | Windows API Malware Technique Catalog &amp;</title>
+  <title>WinAPI Atlas — Windows API Malware Technique Catalog</title>
   <meta name="description" content="Interactive catalog of 721+ Windows APIs mapped to malware techniques, MITRE ATT&amp;CK, Sysmon Event IDs, and ETW providers for SOC Analysts and Malware Researchers.">
   <meta name="keywords" content="MalAPI, MalAPI.io alternative, Windows API malware, Win32 API catalog, Malware Analysis, SOC Analyst, Detection Engineering, Sysmon, ETW, MITRE ATT&amp;CK">
   <link rel="canonical" href="https://winapi-atlas.vercel.app/">
@@ -13,7 +13,7 @@
   <meta name="author" content="WinAPI Atlas contributors">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="WinAPI Atlas | Windows API Malware Technique Catalog">
+  <meta property="og:title" content="WinAPI Atlas — Windows API Malware Technique Catalog">
   <meta property="og:description" content="Interactive catalog of 721+ Windows APIs mapped to malware techniques, MITRE ATT&amp;CK, Sysmon Event IDs, and ETW providers for SOC Analysts and Malware Researchers.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://winapi-atlas.vercel.app/">
@@ -23,7 +23,7 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="WinAPI Atlas | Windows API Malware Technique Catalog">
+  <meta name="twitter:title" content="WinAPI Atlas — Windows API Malware Technique Catalog">
   <meta name="twitter:description" content="721+ Windows APIs mapped to malware techniques, MITRE ATT&amp;CK, Sysmon events and ETW providers. A modern MalAPI.io alternative for detection engineering.">
   <meta name="twitter:image" content="https://winapi-atlas.vercel.app/screenshots/desktop-dark.png">
 
@@ -49,7 +49,7 @@
       "Sysmon event IDs and ETW providers per API",
       "Mapping mode with technique-chain inference",
       "Paste imports triage for dumpbin, rabin2 and PEStudio output",
-      "CSV, JSON, Markdown and Sigma-style exports"
+      "CSV, JSON, Markdown, Sigma-style and Chain Map PNG exports"
     ],
     "offers": {
       "@type": "Offer",
@@ -101,6 +101,7 @@
           <button class="export-btn" type="button" data-export="json">JSON</button>
           <button class="export-btn" type="button" data-export="markdown">Markdown</button>
           <button class="export-btn" type="button" data-export="sigma">Sigma-style hints</button>
+          <button class="export-btn" type="button" data-export="png">Chain Map (PNG)</button>
           <p class="export-note" id="export-scope">Exports the visible table, or the selection when one exists.</p>
         </div>
       </details>
@@ -164,7 +165,7 @@
         WinAPI Atlas is a free, open catalog of <strong>721+ real Windows API functions</strong> used by
         malware and the software that defends against it. Every entry lists its library, description,
         MITRE ATT&amp;CK technique, Sysmon event IDs, ETW providers, legitimate use and behavioural
-        detection guidance. It is a modern, detection-focused.
+        detection guidance. It is a modern, detection-focused reference for connecting API behavior to telemetry and defensive context.
       </p>
       <h3>19 technique categories</h3>
       <ul class="noscript-categories">
@@ -190,7 +191,7 @@
       </ul>
       <p>
         Enable JavaScript to use instant search, combinable filters, Mapping mode, technique inference,
-        paste-import triage and CSV/JSON/Markdown/Sigma-style exports. Dataset and code are MIT licensed.
+        paste-import triage and CSV/JSON/Markdown/Sigma-style/Chain Map PNG exports. Dataset and code are MIT licensed.
       </p>
     </section>
   </noscript>

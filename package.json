@@ -1,0 +1,17 @@
+{
+  "name": "winapi-atlas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive Windows API catalog mapped to malware techniques, telemetry, and detection guidance.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "validate": "node scripts/validate.mjs",
+    "test": "node --test tests/",
+    "check": "npm run validate && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

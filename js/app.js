@@ -4,6 +4,7 @@
  */
 
 import { loadCatalog, findApi, nativeCounterpart, variantApis } from './data.js'
+import { CHAIN_LIMIT, buildChainModel, downloadChainMap, renderChainMap } from './chainmap.js'
 import {
   buildCsv,
   buildJson,
@@ -62,7 +63,7 @@ let lastWrittenHash = null
 const view = new CatalogView(dom.columns, { onRowClick: handleRowClick })
 const panel = new SelectionPanel(dom.panel, {
   onRemove: (name) => update({ selection: state.selection.filter((item) => item !== name) }),
-  onClear: () => update({ selection: [] }),
+  onClear: () => update({ selection: [], importFilter: false }),
   onExport: (format) => doExport(format),
   onOpenApi: (name) => openApi(name)
 })
@@ -195,13 +196,14 @@ function render() {
   if (!data) return
   const filtered = filterApis(data.apis, state)
   const groups = groupByCategory(filtered, data.categories)
-  const visible = visibleCategories(data.categories, state)
+  const visible = visibleCategories(data.categories, state, groups)
 
   if (!activeCategory || !visible.some((category) => category.id === activeCategory)) {
     activeCategory = visible[0]?.id || null
   }
 
-  view.render(state, groups)
+  view.render(state, groups, visible)
+  view.setEmpty(filtered.length === 0)
   view.setActiveCategory(activeCategory)
   renderTabs(visible, groups)
   syncControls()
@@ -235,13 +237,11 @@ function renderTabs(visible, groups) {
 }
 
 function updateStatus(filtered, visible) {
-  const visibleIds = new Set(visible.map((category) => category.id))
-  const shown = visibleIds.size
-    ? filtered.filter((api) => api.categories.some((id) => visibleIds.has(id))).length
-    : 0
+  const shown = visible.length ? filtered.length : 0
   const categoryWord = visible.length === 1 ? 'category' : 'categories'
   let text = `Showing ${shown} of ${data.apis.length} APIs · ${visible.length} ${categoryWord}`
   if (state.selection.length) text += ` · ${state.selection.length} selected`
+  if (state.importFilter && state.selection.length) text += ' · paste import filter'
   if (state.query) text += ` · search “${state.query}”`
   dom.status.textContent = text
 }
@@ -349,6 +349,10 @@ function currentExportSet() {
 }
 
 function doExport(format) {
+  if (format === 'png') {
+    exportChainMapPng()
+    return
+  }
   const { apis, scope } = currentExportSet()
   const techniques = matchTechniques(state.selection, data.presets)
   let text = ''
@@ -383,6 +387,40 @@ function doExport(format) {
 
   downloadFile(exportFilename(extension, scope), text, mime)
   dom.status.textContent = `Exported ${apis.length} APIs as ${label}.`
+}
+
+/** Renders the selected chain (or a capped visible chain) to a PNG download. */
+async function exportChainMapPng() {
+  const selected = state.selection.map((name) => data.byName.get(name)).filter(Boolean)
+  const visible = filterApis(data.apis, state)
+  const apis = selected.length ? selected : visible.slice(0, CHAIN_LIMIT)
+  if (!apis.length) {
+    dom.status.textContent = 'No matching APIs to draw. Clear the search or filters, or select APIs first.'
+    return
+  }
+
+  const scope = selected.length ? 'selection' : 'visible'
+  const technique = matchTechniques(state.selection, data.presets)[0] || null
+  const model = buildChainModel(apis, data.categories, {
+    technique,
+    scope,
+    totalVisible: visible.length
+  })
+  const canvas = document.createElement('canvas')
+
+  try {
+    if (document.fonts?.ready) await document.fonts.ready
+    renderChainMap(canvas, model)
+    await downloadChainMap(canvas)
+    dom.status.textContent = scope === 'selection'
+      ? `Exported a ${apis.length}-API chain map as PNG.`
+      : visible.length > apis.length
+        ? `Exported the first ${apis.length} of ${visible.length} visible APIs as a chain map PNG.`
+        : `Exported ${apis.length} visible API${apis.length === 1 ? '' : 's'} as a chain map PNG.`
+  } catch (error) {
+    console.error('Chain map export failed:', error)
+    dom.status.textContent = 'Chain map export failed — this browser could not create the PNG.'
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -438,7 +476,7 @@ function wireEvents() {
   })
   dom.resetFilters.addEventListener('click', () => {
     dom.search.value = ''
-    update({ query: '', categories: [], libraries: [], suspicion: [], mitre: '' })
+    update({ query: '', categories: [], libraries: [], suspicion: [], mitre: '', importFilter: false })
   })
 
   for (const button of document.querySelectorAll('[data-export]')) {
@@ -494,7 +532,7 @@ let pasteDialog = null
 function applyImport(text) {
   const names = matchImportNames(text, data.apis)
   if (!names.length) return { names: [], summary: '' }
-  update({ selection: names, mapping: true })
+  update({ selection: names, mapping: true, importFilter: true })
   const breakdown = selectionBreakdown(names, data.apis, data.categories)
   const top = [...breakdown.categories]
     .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
