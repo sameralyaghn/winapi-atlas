@@ -405,11 +405,8 @@ test('matchImportNames is case-insensitive and de-duplicates', () => {
   assert.deepEqual(names, ['CreateRemoteThread'])
 })
 
-test('parseQuery reads api, cat and q landing parameters', () => {
-  assert.deepEqual(parseQuery('?api=VirtualAllocEx'), { api: 'VirtualAllocEx' })
-  assert.deepEqual(parseQuery('?cat=injection,spying&q=amsi'), {
-    categories: ['injection', 'spying'],
-    query: 'amsi'
-  })
+test('parseQuery reads only the optional search landing parameter', () => {
+  assert.deepEqual(parseQuery('?api=VirtualAllocEx'), {})
+  assert.deepEqual(parseQuery('?cat=injection,spying&q=amsi'), { query: 'amsi' })
   assert.deepEqual(parseQuery(''), {})
 })

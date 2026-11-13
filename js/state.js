@@ -381,8 +381,8 @@ export function activeFilterCount(state) {
 }
 
 /**
- * Reads the query-string half of a URL: `?api=Name` deep links and `?cat=`
- * landing links used by the sitemap. Everything else stays hash-based.
+ * Reads the optional `?q=` search landing parameter. Canonical API and
+ * category query links are redirected before this runs; app state is hash-based.
  */
 export function parseQuery(search) {
   const out = {}
@@ -393,8 +393,6 @@ export function parseQuery(search) {
   } catch {
     return out
   }
-  if (params.has('api')) out.api = params.get('api') || null
-  if (params.has('cat')) out.categories = decodeList(params.get('cat'))
   if (params.has('q')) out.query = params.get('q') || ''
   return out
 }

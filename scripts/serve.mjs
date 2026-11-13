@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
  * Minimal static file server for local development.
- * Usage: node scripts/serve.mjs [port]
- * Serves the repository root; no dependencies, no build step.
+ * Usage: node scripts/serve.mjs [port] [--dist]
+ * Serves the repository root by default, or the generated dist/ output with
+ * --dist. Clean URLs such as /api/CreateRemoteThread resolve to .html files.
  */
 import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { dirname, extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const root = normalize(join(dirname(fileURLToPath(import.meta.url)), '..'))
-const port = Number(process.argv[2]) || 8000
+const repoRoot = normalize(join(dirname(fileURLToPath(import.meta.url)), '..'))
+const useDist = process.argv.includes('--dist')
+const root = useDist ? join(repoRoot, 'dist') : repoRoot
+const port = Number(process.argv.find((arg) => /^\d+$/.test(arg))) || 8000
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -21,6 +24,7 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
   '.yml': 'text/yaml; charset=utf-8'
 }
@@ -37,6 +41,22 @@ function resolvePath(urlPath) {
   return target
 }
 
+async function findFile(target) {
+  try {
+    const info = await stat(target)
+    return info.isDirectory() ? join(target, 'index.html') : target
+  } catch {
+    if (extname(target)) return null
+    const html = `${target}.html`
+    try {
+      const info = await stat(html)
+      return info.isFile() ? html : null
+    } catch {
+      return null
+    }
+  }
+}
+
 const server = createServer(async (req, res) => {
   const target = resolvePath(req.url || '/')
   if (!target) {
@@ -45,9 +65,8 @@ const server = createServer(async (req, res) => {
     return
   }
   try {
-    let filePath = target
-    const info = await stat(filePath)
-    if (info.isDirectory()) filePath = join(filePath, 'index.html')
+    const filePath = await findFile(target)
+    if (!filePath) throw new Error('Not found')
     const body = await readFile(filePath)
     res.writeHead(200, {
       'Content-Type': MIME[extname(filePath).toLowerCase()] || 'application/octet-stream',
@@ -62,5 +81,5 @@ const server = createServer(async (req, res) => {
 })
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`WinAPI Atlas running at http://localhost:${port}`)
+  console.log(`WinAPI Atlas running at http://localhost:${port} (${useDist ? 'dist' : 'source'})`)
 })

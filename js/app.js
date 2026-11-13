@@ -32,6 +32,18 @@ import {
 } from './state.js'
 import { ApiDialog, CatalogView, ContributeDialog, PasteImportsDialog, SelectionPanel, clear, h } from './ui.js'
 import { DOCS_KIND_VALUES, REVIEW_STATUS_VALUES, TELEMETRY_COVERAGE_VALUES } from './schema.js'
+import {
+  ROOT_DESCRIPTION,
+  ROOT_TITLE,
+  apiMetaDescription,
+  apiPageTitle,
+  canonicalApiUrl,
+  canonicalCategoryUrl,
+  categoryMetaDescription,
+  categoryPageTitle,
+  legacyRedirectTarget,
+  rootCanonicalUrl
+} from './seo.js'
 
 const THEME_KEY = 'winapi-atlas-theme'
 
@@ -59,6 +71,17 @@ const dom = {
   pasteBtn: document.getElementById('paste-btn')
 }
 
+const metadata = {
+  description: document.querySelector('meta[name="description"]'),
+  canonical: document.querySelector('link[rel="canonical"]'),
+  ogTitle: document.querySelector('meta[property="og:title"]'),
+  ogDescription: document.querySelector('meta[property="og:description"]'),
+  ogType: document.querySelector('meta[property="og:type"]'),
+  ogUrl: document.querySelector('meta[property="og:url"]'),
+  twitterTitle: document.querySelector('meta[name="twitter:title"]'),
+  twitterDescription: document.querySelector('meta[name="twitter:description"]')
+}
+
 let data = null
 let state = emptyState()
 let activeCategory = null
@@ -75,14 +98,16 @@ const apiDialog = new ApiDialog({
   onNavigate: (name) => openApi(name),
   onToggleSelection: (name) => toggleSelection(name),
   getSelected: () => state.selection,
-  getShareUrl: () => location.href,
+  getShareUrl: (api) => api
+    ? canonicalApiUrl(location.origin, api.name)
+    : rootCanonicalUrl(location.origin),
   getVariants: (api) => (data ? variantApis(api, data.byName) : []),
   getNative: (api) => (data ? nativeCounterpart(api.name, data.byName) : null),
   onClose: () => {
-    clearApiParam()
     if (!state.api) return
     state = { ...state, api: null }
     syncHash()
+    updateSeoMetadata()
   }
 })
 
@@ -221,6 +246,43 @@ function render() {
   updateStatus(filtered, visible)
   applyMappingStyle()
   syncHash()
+  updateSeoMetadata()
+}
+
+/** Keeps title, canonical and social metadata aligned with the open view. */
+function updateSeoMetadata() {
+  let title = ROOT_TITLE
+  let description = ROOT_DESCRIPTION
+  let canonical = rootCanonicalUrl(location.origin)
+  let type = 'website'
+
+  if (state.api && data?.byName.has(state.api)) {
+    const api = data.byName.get(state.api)
+    title = apiPageTitle(api)
+    description = apiMetaDescription(api)
+    canonical = canonicalApiUrl(location.origin, api.name)
+    type = 'article'
+  } else if (state.categories.length === 1 && data?.categoryById.has(state.categories[0])) {
+    const category = data.categoryById.get(state.categories[0])
+    const count = data.apis.filter((api) => api.categories.includes(category.id)).length
+    title = categoryPageTitle(category)
+    description = categoryMetaDescription(category, count)
+    canonical = canonicalCategoryUrl(location.origin, category.id)
+  }
+
+  document.title = title
+  setMeta(metadata.description, description)
+  setMeta(metadata.ogTitle, title)
+  setMeta(metadata.ogDescription, description)
+  setMeta(metadata.ogType, type)
+  setMeta(metadata.ogUrl, canonical)
+  setMeta(metadata.twitterTitle, title)
+  setMeta(metadata.twitterDescription, description)
+  if (metadata.canonical) metadata.canonical.href = canonical
+}
+
+function setMeta(element, value) {
+  if (element) element.setAttribute('content', value)
 }
 
 function renderTabs(visible, groups) {
@@ -288,9 +350,8 @@ function update(patch) {
 }
 
 function syncHash() {
-  // The open API lives in ?api= so it stays a clean, crawlable deep link; the
-  // hash keeps the rest of the shareable state.
-  const hash = serializeState(state.api ? { ...state, api: null } : state)
+  // The hash keeps the complete shareable app state, including the open API.
+  const hash = serializeState(state)
   if (location.hash === hash) {
     lastWrittenHash = hash
     return
@@ -300,25 +361,11 @@ function syncHash() {
   history.replaceState(null, '', url)
 }
 
-/** Adds, moves or removes ?api= without touching the hash state. */
-function syncApiParam(name) {
-  const url = new URL(location.href)
-  const current = url.searchParams.get('api')
-  if (name ? current === name : current === null) return
-  if (name) url.searchParams.set('api', name)
-  else url.searchParams.delete('api')
-  history.replaceState(null, '', url.pathname + url.search + url.hash)
-}
-
-function clearApiParam() {
-  syncApiParam(null)
-}
-
-/** Folds ?cat=/?q= landing links into state so they can be hashed and shared. */
+/** Folds a ?q= search landing link into hash state. */
 function consumeQueryState() {
   const url = new URL(location.href)
   let changed = false
-  for (const key of ['cat', 'q']) {
+  for (const key of ['q']) {
     if (!url.searchParams.has(key)) continue
     url.searchParams.delete(key)
     changed = true
@@ -343,9 +390,9 @@ function openApi(name, { writeHash = true } = {}) {
     return
   }
   state = { ...state, api: api.name }
-  syncApiParam(api.name)
   apiDialog.open(api)
   if (writeHash) syncHash()
+  updateSeoMetadata()
 }
 
 /* ------------------------------------------------------------------ */
@@ -569,6 +616,12 @@ function applyImport(text) {
 }
 
 async function init() {
+  const redirect = legacyRedirectTarget(location.search)
+  if (redirect) {
+    location.replace(redirect)
+    return
+  }
+
   const hashState = parseHash(location.hash)
   const queryState = parseQuery(location.search)
   state = {
@@ -588,8 +641,6 @@ async function init() {
   state = sanitizeState(state)
   activeCategory = null
   lastWrittenHash = location.hash
-  // Drop a stale ?api=Name that no longer exists in the catalog.
-  if (!state.api) clearApiParam()
   consumeQueryState()
 
   view.setCategories(data.categories)

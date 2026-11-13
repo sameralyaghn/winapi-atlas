@@ -35,7 +35,7 @@
 | **Interactive Mapping Mode** | Select APIs across columns to calculate per-category breakdowns and score known attack technique chains with order-aware validation. |
 | **Paste Imports Analyzer** | Paste raw output from `PEStudio`, `dumpbin /imports`, `rabin2 -i`, or `strings` to automatically normalize, match, and filter the board to the matched APIs in one click. |
 | **API Variants & NTAPI Counterparts** | Shows `A`/`W`/`Ex` variants and the underlying `ntdll.dll` native syscall counterpart (e.g., `VirtualAllocEx` → `NtAllocateVirtualMemory`). |
-| **Deep Linking** | Share direct links to any API (`?api=CreateRemoteThread`) or category (`?cat=injection`). |
+| **Deep Linking** | Share crawlable canonical pages for every API (`/api/CreateRemoteThread`) and category (`/category/injection`). |
 | **Multi-Format Exports** | Export mapped selections or filtered views to **CSV**, **JSON**, **Markdown**, **Sigma-style hunting hints**, or a visual **Chain Map (PNG)**. |
 
 ---
@@ -79,6 +79,18 @@ node scripts/serve.mjs
 python -m http.server 8000
 ```
 
+### Building the static SEO pages
+
+The runtime app is still plain HTML, CSS and ES Modules. A dependency-free build step copies it and adds one crawlable page per API and category, plus a generated sitemap:
+
+```bash
+npm run build:seo                # Writes dist/ with app, API, category, sitemap and robots output
+npm run preview:seo              # Builds, then serves dist/ at http://localhost:8001
+npm run check:seo                # Builds and verifies H1s, canonicals, metadata, sitemap and gzip budget
+```
+
+Canonical URLs are `/` for the app, `/api/<ApiName>` for API pages, and `/category/<category-id>` for category pages. Vercel maps the generated `.html` files to those clean paths. Legacy `?api=` and `?cat=` links client-redirect to the canonical page.
+
 ### Dataset Validation & Tests
 
 To verify dataset integrity (checking for duplicate APIs, broken references, or schema errors) and run the unit test suite:
@@ -87,7 +99,7 @@ To verify dataset integrity (checking for duplicate APIs, broken references, or 
 npm run check
 ```
 
-`npm run validate` runs the dataset validator, `npm test` runs the unit tests, and `npm run check` runs both. The same checks run in CI on every push and pull request.
+`npm run validate` runs the dataset validator, `npm test` runs the unit tests, and `npm run check` also builds and verifies the static SEO output. The same checks run in CI on every push and pull request.
 
 ---
 
@@ -182,14 +194,20 @@ Community contributions (new Windows APIs, deeper Sysmon/ETW detection notes, or
 index.html            App shell & SEO metadata
 package.json          npm scripts and supported Node version
 css/style.css         Dark/Light themes, responsive grid, modals
+css/static.css        Standalone styling for generated SEO pages
 js/app.js             Main controller, state & URL synchronization
 js/data.js            Catalog loader, NTAPI counterparts & variant lookup
 js/schema.js          Verification schema, labels and conservative classifiers
+js/seo.js             Shared canonical URL, title and description helpers
 js/state.js           Search, filtering, import parser & technique scoring
 js/ui.js              DOM rendering, virtualized columns & modals
 js/export.js          CSV, JSON, Markdown & Sigma-style exporters
 js/chainmap.js        Canvas chain-map layout and PNG rendering
 data/                 apis.json, categories.json, presets.json
+scripts/build-seo.mjs Static app + API/category/sitemap generator
+scripts/seo-pages.mjs Pure HTML and XML renderers for generated pages
+scripts/check-seo.mjs Crawlability, metadata, sitemap and payload checks
+scripts/serve.mjs      Zero-dependency source or dist/ dev server
 scripts/validate.mjs  Dataset schema & deduplication validator
 scripts/validation.mjs  Pure validation rules used by the CLI and tests
 scripts/migrate-verification.mjs  Conservative Phase 1A metadata migration

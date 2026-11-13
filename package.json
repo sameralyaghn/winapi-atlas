@@ -7,9 +7,13 @@
   "license": "MIT",
   "scripts": {
     "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build-seo.mjs",
+    "build:seo": "node scripts/build-seo.mjs",
+    "preview:seo": "npm run build:seo && node scripts/serve.mjs 8001 --dist",
     "validate": "node scripts/validate.mjs",
     "test": "node --test tests/",
-    "check": "npm run validate && npm test"
+    "check:seo": "npm run build:seo && node scripts/check-seo.mjs",
+    "check": "npm run validate && npm test && npm run check:seo"
   },
   "engines": {
     "node": ">=20"

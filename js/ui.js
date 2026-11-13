@@ -621,9 +621,9 @@ export class ApiDialog {
   }
 
   async copyLink() {
-    const url = this.getShareUrl ? this.getShareUrl() : location.href
+    const url = this.getShareUrl ? this.getShareUrl(this.current) : location.href
     const ok = await copyText(url)
-    this.statusEl.textContent = ok ? 'Deep link copied to clipboard.' : 'Copy failed — copy the address bar instead.'
+    this.statusEl.textContent = ok ? 'Canonical page link copied to clipboard.' : 'Copy failed — use the page address instead.'
   }
 
   async copyAs(format) {
