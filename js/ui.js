@@ -5,6 +5,7 @@
 
 import { SUSPICION_LABEL, tokenize } from './state.js'
 import { mitreUrl } from './data.js'
+import { canonicalApiPath, canonicalCategoryPath } from './seo.js'
 import {
   DOCS_KIND_DESCRIPTION,
   DOCS_KIND_LABEL,
@@ -149,6 +150,13 @@ export class CatalogView {
 
   buildColumn(category) {
     const countEl = h('span', { class: 'catcol-count', text: '0' })
+    const pageLink = h('a', {
+      class: 'cat-page-link',
+      href: canonicalCategoryPath(category.id),
+      title: `Open the ${category.title} category page`,
+      'aria-label': `Open the ${category.title} category page`,
+      text: 'Page'
+    })
     const infoBtn = h('button', {
       class: 'info-btn',
       type: 'button',
@@ -159,8 +167,16 @@ export class CatalogView {
     const header = h('header', { class: 'catcol-head' }, [
       h('div', { class: 'catcol-titles' }, [
         h('span', { class: 'cat-dot', 'aria-hidden': 'true' }),
-        h('h3', { class: 'catcol-title', id: `cat-title-${category.id}`, text: category.title }),
+        h('h3', { class: 'catcol-title', id: `cat-title-${category.id}` }, [
+          h('a', {
+            class: 'cat-title-link',
+            href: canonicalCategoryPath(category.id),
+            title: `Open the ${category.title} category page`,
+            text: category.title
+          })
+        ]),
         countEl,
+        pageLink,
         infoBtn
       ]),
       h('p', { class: 'cat-tip', id: `cat-tip-${category.id}`, role: 'tooltip', text: category.explanation }),
@@ -523,6 +539,7 @@ export class ApiDialog {
     this.metaEl = h('div', { class: 'dialog-meta' })
     this.bodyEl = h('div', { class: 'dialog-body' })
     this.selectBtn = h('button', { class: 'btn btn-primary', type: 'button', text: 'Add to mapping', onclick: () => this.toggleSelection() })
+    this.pageLink = h('a', { class: 'btn', href: '#', title: 'Open the full API page' }, ['Open page'])
     this.statusEl = h('p', { class: 'copy-status', role: 'status', 'aria-live': 'polite' })
 
     this.dialog = h('dialog', { class: 'dialog', id: 'api-dialog', 'aria-labelledby': 'api-dialog-title' }, [
@@ -535,6 +552,7 @@ export class ApiDialog {
         this.bodyEl,
         h('footer', { class: 'dialog-foot' }, [
           this.selectBtn,
+          this.pageLink,
           h('button', { class: 'btn', type: 'button', text: 'Copy JSON', onclick: () => this.copyAs('json') }),
           h('button', { class: 'btn', type: 'button', text: 'Copy Markdown', onclick: () => this.copyAs('markdown') }),
           h('button', { class: 'btn', type: 'button', text: 'Copy Link', onclick: () => this.copyLink() }),
@@ -572,6 +590,8 @@ export class ApiDialog {
     this.wasOpen = true
     this.statusEl.textContent = ''
     this.titleEl.textContent = api.name
+    this.pageLink.href = canonicalApiPath(api.name)
+    this.pageLink.title = `Open the ${api.name} API page`
     this.dialog.setAttribute('aria-label', `${api.name} details`)
     clear(this.metaEl)
     const reviewed = isReviewed(api)
