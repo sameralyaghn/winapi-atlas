@@ -303,6 +303,12 @@ export class CatalogView {
     }, [
       h('span', { class: 'row-head' }, [
         h('span', { class: 'row-name' }, highlight(api.name, this.tokens || [])),
+        h('span', {
+          class: 'row-review',
+          dataset: { state: isReviewed(api) ? 'reviewed' : 'unreviewed' },
+          title: isReviewed(api) ? `Human-reviewed ${api.reviewed_at}` : 'Not yet human-reviewed',
+          text: isReviewed(api) ? 'reviewed' : 'unreviewed'
+        }),
         h('span', { class: 'row-lib', text: api.library.replace(/\.dll$/i, '') })
       ]),
       h('span', { class: 'row-desc', text: api.description }),

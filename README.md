@@ -136,7 +136,7 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
 
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
-| `docs_kind` | `direct`, `related`, `none` | `direct` means the Microsoft Learn URL path names this API. `related` means the link is a related or general page, not a first-party reference for the function. `none` means no link is recorded. |
+| `docs_kind` | `direct`, `equivalent`, `generic`, `related`, `none` | `direct` means the Microsoft Learn URL is specific to this API or its A/W variant. `equivalent` means it documents a Win32/native counterpart. `generic` means a shared index or reference page. `related` means a related page that is not first-party documentation for this API. `none` means no link is recorded. |
 | `telemetry_coverage` | `direct`, `indirect`, `none`, `unknown` | `direct` means a provider reports the API operation itself. `indirect` means Sysmon/ETW exposes related OS effects, not the Win32 call. `none` means no practical native coverage is recorded. `unknown` means not yet classified. |
 | `reviewed_at` | ISO date or `null` | The date a human last reviewed the entry's claims. A documentation link alone is **not** a review. |
 | `sources` | Array of `{ "label", "url" }` | Citations supporting the entry's review. URLs must use HTTPS. A review date requires at least one source, and sources require a review date. |
@@ -146,9 +146,10 @@ Each API in `data/apis.json` follows a strict, deduplicated schema:
 The Phase 1A migration was deliberately conservative:
 
 - `docs_kind` was derived from whether the existing Microsoft Learn URL path names the API.
+- Native `Nt*`, `Zw*` and `Rtl*` entries whose link documents an equivalent Win32/native function are marked `equivalent`; shared index pages are marked `generic`.
 - Existing Sysmon/ETW mappings were marked `indirect`; only a provider that reports the API call itself may justify `direct`.
 - Entries with no mapping were marked `none` only when their recorded detection notes explicitly say the API is not logged directly; otherwise they remained `unknown`.
-- Every existing `reviewed_at` is `null` and every `sources` array is empty. No review date, source, or direct-telemetry claim was invented.
+- The migration started with every `reviewed_at` set to `null` and every `sources` array empty. Later review batches populate those fields only from cited evidence; no review date, source, or direct-telemetry claim is invented.
 
 ### Technique Presets (`data/presets.json`)
 
@@ -172,6 +173,24 @@ Presets are either ordered chains or single-API indicators:
 - Chains score 60% required membership, 20% required ordering, and 20% optional coverage. Indicators score 80% required membership and 20% optional coverage.
 - Only a chain with every required API selected in sequence is labelled **Required chain complete** or used as the Chain Map header match. Partial matches are **Possible sequence**; full membership in the wrong order is **Out of order**.
 - Optional APIs do not affect required ordering.
+
+### Suspicion rubric
+
+`suspicion` describes the API's abuse capability in this catalog, not whether a particular binary is malicious.
+
+- **high** — the API is a direct primitive for a high-impact behavior such as remote memory/thread manipulation, credential or token theft, service/driver persistence, input capture, or defense evasion.
+- **medium** — the API enables meaningful reconnaissance, access, or execution but is also common in legitimate software or requires an additional chain to become impactful.
+- **low** — the API is primarily a utility or normal application primitive; it becomes interesting only in combination with other behavior.
+
+The rating is based on documented behavior and abuse role, not prevalence, CVSS, exploitability, or confidence that a sample is malicious. It is not a verdict.
+
+### Review queue and batches
+
+The audit queue prioritizes all high-suspicion entries, then medium-suspicion entries with real telemetry, then the remainder. A review batch records a valid `reviewed_at` date and cites the Microsoft Learn API page, the official Sysmon event reference, and MITRE ATT&CK where mapped. Entries are never bulk-marked reviewed. Run the queue/report generator with:
+
+```bash
+npm run audit
+```
 
 ### Dataset Coverage
 
@@ -208,10 +227,13 @@ scripts/build-seo.mjs Static app + API/category/sitemap generator
 scripts/seo-pages.mjs Pure HTML and XML renderers for generated pages
 scripts/check-seo.mjs Crawlability, metadata, sitemap and payload checks
 scripts/serve.mjs      Zero-dependency source or dist/ dev server
+scripts/audit-batch-1.mjs Reviewed high-suspicion no-telemetry batch
+scripts/audit-report.mjs Data-derived review queue and audit report
 scripts/validate.mjs  Dataset schema & deduplication validator
 scripts/validation.mjs  Pure validation rules used by the CLI and tests
 scripts/migrate-verification.mjs  Conservative Phase 1A metadata migration
 tests/                Unit tests for search, filters, schema, exports and chain maps
+reports/              Generated review queue and audit report
 .github/workflows/    Continuous integration
 ```
 

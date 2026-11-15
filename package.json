@@ -10,6 +10,7 @@
     "build": "node scripts/build-seo.mjs",
     "build:seo": "node scripts/build-seo.mjs",
     "preview:seo": "npm run build:seo && node scripts/serve.mjs 8001 --dist",
+    "audit": "node scripts/audit-report.mjs",
     "validate": "node scripts/validate.mjs",
     "test": "node --test tests/",
     "check:seo": "npm run build:seo && node scripts/check-seo.mjs",

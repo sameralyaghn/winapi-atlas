@@ -149,7 +149,9 @@
               <select id="docs-filter" class="filter-select">
                 <option value="">All documentation</option>
                 <option value="direct">Direct function docs</option>
-                <option value="related">Related or generic docs</option>
+                <option value="equivalent">Equivalent API docs</option>
+                <option value="generic">Generic / index docs</option>
+                <option value="related">Other related docs</option>
                 <option value="none">No docs link</option>
               </select>
             </label>
@@ -279,8 +281,8 @@
         </p>
         <h3>Data and verification</h3>
         <p>
-          <strong>Documentation</strong> distinguishes a direct Microsoft Learn page from a related or generic
-          page. <strong>Telemetry coverage</strong> distinguishes direct API telemetry from indirect Sysmon/ETW
+          <strong>Documentation</strong> distinguishes a direct Microsoft Learn page from equivalent API docs,
+          shared generic pages and other related pages. <strong>Telemetry coverage</strong> distinguishes direct API telemetry from indirect Sysmon/ETW
           effects, no native coverage, and unclassified entries. <strong>Review status</strong> and cited
           <strong>sources</strong> are shown separately; a documentation link is not treated as a human review.
         </p>

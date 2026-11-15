@@ -4,18 +4,22 @@
  * evidence already present in an entry; they do not infer unrecorded claims.
  */
 
-export const DOCS_KIND_VALUES = ['direct', 'related', 'none']
+export const DOCS_KIND_VALUES = ['direct', 'equivalent', 'generic', 'related', 'none']
 export const TELEMETRY_COVERAGE_VALUES = ['direct', 'indirect', 'none', 'unknown']
 export const REVIEW_STATUS_VALUES = ['reviewed', 'unreviewed']
 
 export const DOCS_KIND_LABEL = {
   direct: 'Direct docs',
+  equivalent: 'Equivalent docs',
+  generic: 'Generic docs',
   related: 'Related docs',
   none: 'No docs link'
 }
 
 export const DOCS_KIND_DESCRIPTION = {
-  direct: 'The link points to the Microsoft Learn page for this API.',
+  direct: 'The link points to the Microsoft Learn page for this API or its A/W variant.',
+  equivalent: 'The link documents an equivalent Win32 or native API, not a page for this exact function.',
+  generic: 'The link is a generic or index page shared by multiple APIs.',
   related: 'The link points to a related or general Microsoft Learn page, not a first-party reference for this API.',
   none: 'No documentation link is recorded.'
 }
@@ -47,7 +51,11 @@ export function classifyDocsKind(name, docs) {
   if (!docs) return 'none'
   try {
     const path = new URL(docs).pathname.toLowerCase()
-    return path.includes(String(name || '').toLowerCase()) ? 'direct' : 'related'
+    const normalized = String(name || '').toLowerCase()
+    const candidates = normalized.length > 1 && /[aw]$/.test(normalized)
+      ? [normalized, normalized.slice(0, -1)]
+      : [normalized]
+    return candidates.some((candidate) => path.includes(candidate)) ? 'direct' : 'related'
   } catch {
     return 'none'
   }

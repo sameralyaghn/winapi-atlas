@@ -1009,6 +1009,25 @@ kbd {
   text-overflow: ellipsis;
 }
 
+.row-review {
+  flex: 0 0 auto;
+  padding: 1px 3px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.row-review[data-state="reviewed"] {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+  color: var(--ok);
+}
+
 .row-lib {
   margin-left: auto;
   flex: 0 0 auto;

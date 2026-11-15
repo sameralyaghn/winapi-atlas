@@ -2,10 +2,16 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  DOCS_KIND_VALUES,
   classifyDocsKind,
   classifyTelemetryCoverage,
   isReviewed
 } from '../js/schema.js'
+
+test('documentation kinds include equivalent and generic classifications', () => {
+  assert.ok(DOCS_KIND_VALUES.includes('equivalent'))
+  assert.ok(DOCS_KIND_VALUES.includes('generic'))
+})
 
 test('classifyDocsKind distinguishes direct, related and missing links', () => {
   assert.equal(
@@ -21,6 +27,13 @@ test('classifyDocsKind distinguishes direct, related and missing links', () => {
       'https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethreadex'
     ),
     'related'
+  )
+  assert.equal(
+    classifyDocsKind(
+      'GetCurrentDirectoryW',
+      'https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectory'
+    ),
+    'direct'
   )
   assert.equal(classifyDocsKind('Foo', ''), 'none')
   assert.equal(classifyDocsKind('Foo', 'not a URL'), 'none')

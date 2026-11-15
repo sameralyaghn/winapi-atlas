@@ -38,7 +38,7 @@ export function validateDataset(apis, categories, presets, options = {}) {
       errors,
       warnings,
       categoryCounts: {},
-      docsCounts: { direct: 0, related: 0, none: 0 },
+      docsCounts: { direct: 0, equivalent: 0, generic: 0, related: 0, none: 0 },
       telemetryCounts: { direct: 0, indirect: 0, none: 0, unknown: 0 },
       reviewedCount: 0,
       unverified: []
@@ -110,7 +110,7 @@ export function validateDataset(apis, categories, presets, options = {}) {
       errors.push(`${where}: docs must be an https URL on learn.microsoft.com`)
     }
     if (!DOCS_KIND_VALUES.includes(api.docs_kind)) {
-      errors.push(`${where}: docs_kind must be direct|related|none`)
+      errors.push(`${where}: docs_kind must be direct|equivalent|generic|related|none`)
     } else if (api.docs_kind === 'none' && isNonEmptyString(api.docs)) {
       errors.push(`${where}: docs_kind is none but a docs URL is present`)
     } else if (api.docs_kind !== 'none' && !isNonEmptyString(api.docs)) {
@@ -252,7 +252,7 @@ export function validateDataset(apis, categories, presets, options = {}) {
     }
   }
 
-  const docsCounts = { direct: 0, related: 0, none: 0 }
+  const docsCounts = { direct: 0, equivalent: 0, generic: 0, related: 0, none: 0 }
   const telemetryCounts = { direct: 0, indirect: 0, none: 0, unknown: 0 }
   for (const api of apis) {
     if (docsCounts[api.docs_kind] !== undefined) docsCounts[api.docs_kind] += 1

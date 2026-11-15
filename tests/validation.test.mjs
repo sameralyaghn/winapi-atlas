@@ -85,7 +85,16 @@ test('validateDataset rejects invalid docs_kind values', () => {
   const errors = errorsFor((candidate) => {
     candidate.docs_kind = 'first-party'
   })
-  assertError(errors, 'docs_kind must be direct|related|none')
+  assertError(errors, 'docs_kind must be direct|equivalent|generic|related|none')
+})
+
+test('validateDataset accepts equivalent and generic documentation kinds', () => {
+  for (const docs_kind of ['equivalent', 'generic']) {
+    const candidate = structuredClone(api)
+    candidate.docs_kind = docs_kind
+    const result = validateDataset([candidate], categories, [], { today: '2026-11-15' })
+    assert.deepEqual(result.errors, [])
+  }
 })
 
 test('validateDataset rejects a none docs kind with a documentation URL', () => {

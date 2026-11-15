@@ -577,10 +577,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptencrypt",
     "detection": {
-      "summary": "BCryptEncrypt has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "No reviewed Sysmon/ETW event identifies BCryptEncrypt; encryption is inferred from file behavior and EDR crypto telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate EDR user-mode crypto API telemetry with Sysmon 11 file writes and rapid renames or extension changes. The import alone is weak because browsers, messengers, VPNs and installers use the same API."
     },
     "legit_use": "Browsers, VPNs, messengers, installers, password managers and games.",
     "related": [
@@ -591,8 +591,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — BCryptEncrypt",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptencrypt"
+      },
+      {
+        "label": "MITRE ATT&CK T1486: Data Encrypted for Impact",
+        "url": "https://attack.mitre.org/techniques/T1486/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "BCryptExportKey",
@@ -1061,10 +1074,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt",
     "detection": {
-      "summary": "BitBlt has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "Screen capture through BitBlt has no direct event; it is inferred from GDI/API telemetry and the resulting file or network activity.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR GDI/API hooks or call-stack telemetry to observe BitBlt and adjacent GetDC, GetDIBits or StretchBlt calls. Correlate with Sysmon 11 image writes or Sysmon 3 connections from the same process."
     },
     "legit_use": "Accessibility software, remote support tools, clipboard managers and screenshot utilities.",
     "related": [
@@ -1076,8 +1089,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — BitBlt",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt"
+      },
+      {
+        "label": "MITRE ATT&CK T1113: Screen Capture",
+        "url": "https://attack.mitre.org/techniques/T1113/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "BlockInput",
@@ -1090,10 +1116,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-blockinput",
     "detection": {
-      "summary": "BlockInput has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "BlockInput has no reviewed Sysmon/ETW event; detect input suppression through EDR hooks and session behavior.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Look for BlockInput together with window or input manipulation, not as a standalone event. EDR user-mode hooks or call stacks can surface the call; correlate with a process suppressing keyboard and mouse input while it performs other activity."
     },
     "legit_use": "Kiosk, lockdown and security tools that block user input; also used by malware to frustrate analysis.",
     "related": [],
@@ -1101,8 +1127,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — BlockInput",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-blockinput"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CallNextHookEx",
@@ -1369,10 +1404,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-changeserviceconfigw",
     "detection": {
-      "summary": "ChangeServiceConfigW has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "ChangeServiceConfigW is not logged directly; the defensible signal is the resulting service-registry change and process execution.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Monitor Sysmon 12/13 for writes under HKLM\\SYSTEM\\CurrentControlSet\\Services, especially ImagePath, ServiceDll, Start and ObjectName, and Sysmon 1 for the modified binary or service host starting. Treat the API import as context, not proof."
     },
     "legit_use": "Installers, updaters, drivers and enterprise management software.",
     "related": [],
@@ -1380,8 +1415,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — ChangeServiceConfigW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-changeserviceconfigw"
+      },
+      {
+        "label": "MITRE ATT&CK T1543.003: Create or Modify System Process: Windows Service",
+        "url": "https://attack.mitre.org/techniques/T1543/003/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CheckRemoteDebuggerPresent",
@@ -1398,10 +1446,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-checkremotedebuggerpresent",
     "detection": {
-      "summary": "CheckRemoteDebuggerPresent has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "CheckRemoteDebuggerPresent has no native event; anti-debug behavior must be inferred from API/EDR telemetry and surrounding execution.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR user-mode hooks or call stacks and correlate with IsDebuggerPresent, NtQueryInformationProcess, timing checks or debugger-detection branches. The reviewed Sysmon event set does not record this query."
     },
     "legit_use": "Anti-cheat, DRM, licensing and crash-reporting components.",
     "related": [
@@ -1411,8 +1459,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — CheckRemoteDebuggerPresent",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-checkremotedebuggerpresent"
+      },
+      {
+        "label": "MITRE ATT&CK T1622: Debugger Evasion",
+        "url": "https://attack.mitre.org/techniques/T1622/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CheckTokenMembership",
@@ -2897,10 +2958,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/tlhelp32/nf-tlhelp32-createtoolhelp32snapshot",
     "detection": {
-      "summary": "CreateToolhelp32Snapshot has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "Process, thread or module snapshots are not recorded by Sysmon; discovery is detected through API/EDR telemetry and follow-on enumeration.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR hooks or call stacks to see CreateToolhelp32Snapshot, then correlate with Process32First/Next, Module32First/Next, Thread32First and process-access activity (Sysmon 10 where configured). Sysmon 1 only shows child-process creation."
     },
     "legit_use": "Task managers, EDR agents, installers, backup and inventory tools.",
     "related": [
@@ -2913,8 +2974,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — CreateToolhelp32Snapshot",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/tlhelp32/nf-tlhelp32-createtoolhelp32snapshot"
+      },
+      {
+        "label": "MITRE ATT&CK T1057: Process Discovery",
+        "url": "https://attack.mitre.org/techniques/T1057/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CreateWellKnownSid",
@@ -3023,10 +3097,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credenumeratew",
     "detection": {
-      "summary": "CredEnumerateW has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "Credential Manager enumeration has no reviewed Sysmon/ETW event; EDR credential-API telemetry is the practical signal.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Look for CredEnumerateW together with CredReadW/CredFree and subsequent authentication, token, file or network activity. Use EDR user-mode hooks; do not claim Sysmon captures the vault read."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [
@@ -3037,8 +3111,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — CredEnumerateW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credenumeratew"
+      },
+      {
+        "label": "MITRE ATT&CK T1555: Credentials from Password Stores",
+        "url": "https://attack.mitre.org/techniques/T1555/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CredFree",
@@ -3081,10 +3168,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw",
     "detection": {
-      "summary": "CredReadW has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "Credential Manager reads have no reviewed Sysmon/ETW event; detect them through EDR credential-API telemetry and correlated authentication.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate CredReadW with CredEnumerateW, credential-store access and later logon or network authentication. EDR user-mode hooks or call stacks are required; Sysmon does not record the vault read itself."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [
@@ -3095,8 +3182,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — CredReadW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw"
+      },
+      {
+        "label": "MITRE ATT&CK T1555: Credentials from Password Stores",
+        "url": "https://attack.mitre.org/techniques/T1555/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CredWriteW",
@@ -3338,10 +3438,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptencrypt",
     "detection": {
-      "summary": "CryptEncrypt has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "No reviewed Sysmon/ETW event identifies CryptEncrypt; ransomware behavior must be inferred from file and process effects.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate EDR crypto API telemetry with Sysmon 11 file writes, rapid renames and extension changes, and ransom-note or backup-tampering behavior. The API is also common in benign software, so never treat it as a verdict."
     },
     "legit_use": "Browsers, VPNs, messengers, installers, password managers and games.",
     "related": [
@@ -3352,8 +3452,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — CryptEncrypt",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptencrypt"
+      },
+      {
+        "label": "MITRE ATT&CK T1486: Data Encrypted for Impact",
+        "url": "https://attack.mitre.org/techniques/T1486/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CryptEnumProvidersW",
@@ -3580,10 +3693,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptimportkey",
     "detection": {
-      "summary": "CryptImportKey has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "CryptImportKey has no reviewed Sysmon/ETW event; key import is only a supporting signal for later encryption or decryption.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate EDR crypto API telemetry with CryptEncrypt/CryptDecrypt and Sysmon 11 file writes. Import presence alone is weak and common in browsers, VPNs and installers."
     },
     "legit_use": "Browsers, VPNs, messengers, installers, password managers and games.",
     "related": [],
@@ -3591,8 +3704,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — CryptImportKey",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptimportkey"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "CryptMsgClose",
@@ -4004,10 +4126,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-definedosdevicew",
     "detection": {
-      "summary": "DefineDosDeviceW has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "DefineDosDeviceW is not directly logged; detect doppelganging setups through API telemetry and adjacent file, image and process events.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR user-mode hooks or call stacks for DefineDosDeviceW and correlate with process creation (Sysmon 1), image loads (Sysmon 7) and file writes (Sysmon 11). The device mapping itself has no reviewed Sysmon/ETW event."
     },
     "legit_use": "Only security products and research tooling should touch these paths.",
     "related": [],
@@ -4015,8 +4137,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — DefineDosDeviceW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-definedosdevicew"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "DefWindowProcW",
@@ -4192,10 +4323,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-deleteservice",
     "detection": {
-      "summary": "DeleteService has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "DeleteService has no direct event; the observable effect is removal of the service registry key and related process activity.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Monitor Sysmon 12/13 for deletion or modification under the Services registry key and Sysmon 1 for service-host activity. Use EDR hooks for the API call; the service deletion event is not a Sysmon event."
     },
     "legit_use": "Installers, updaters, drivers and enterprise management software.",
     "related": [
@@ -4205,8 +4336,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — DeleteService",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-deleteservice"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "DestroyWindow",
@@ -4536,10 +4676,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-duplicatetoken",
     "detection": {
-      "summary": "DuplicateToken has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "DuplicateToken has no reviewed Sysmon/ETW event; token duplication is inferred from EDR handle/token telemetry and the operations that follow.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate DuplicateToken with OpenProcessToken, DuplicateTokenEx, SetThreadToken or CreateProcessWithTokenW. Sysmon 10 can show process access when a token is taken from another process, but it does not identify the duplication call."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [
@@ -4549,8 +4689,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — DuplicateToken",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-duplicatetoken"
+      },
+      {
+        "label": "MITRE ATT&CK T1134.001: Access Token Manipulation: Token Impersonation/Theft",
+        "url": "https://attack.mitre.org/techniques/T1134/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "DuplicateTokenEx",
@@ -4568,10 +4721,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-duplicatetokenex",
     "detection": {
-      "summary": "Token theft: duplicate a token from a privileged process such as winlogon, lsass or services.exe, then use it with CreateProcessWithTokenW or ImpersonateLoggedOnUser; detect Sysmon 10 handle opens to privileged processes with token-query rights, Security 4624/4672/4688 events with unusual logon types, EDR hooks on DuplicateTokenEx, and process/user identity mismatches. No direct Sysmon event exists for duplication.",
+      "summary": "DuplicateTokenEx is not directly logged; correlate token-handle telemetry with impersonation or process creation that uses the duplicate.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "No direct Sysmon event; Security-Auditing logs logon/impersonation events when the duplicated token is used, not the duplication call itself."
+      "notes": "Look for DuplicateTokenEx plus OpenProcessToken, ImpersonateLoggedOnUser, SetThreadToken or CreateProcessWithTokenW. Sysmon 10 can provide process-access context; EDR handle/token telemetry is needed for the duplication itself."
     },
     "legit_use": "Windows services, IIS, SQL Server, scheduled tasks, runas, backup tools, debuggers and security products.",
     "related": [
@@ -4583,8 +4736,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — DuplicateTokenEx",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-duplicatetokenex"
+      },
+      {
+        "label": "MITRE ATT&CK T1134.001: Access Token Manipulation: Token Impersonation/Theft",
+        "url": "https://attack.mitre.org/techniques/T1134/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "EmptyClipboard",
@@ -4877,10 +5043,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-enumprocesses",
     "detection": {
-      "summary": "EnumProcesses has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "EnumProcesses has no reviewed Sysmon/ETW event; process discovery is detected through API/EDR telemetry and follow-on access.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR hooks or call stacks and correlate with OpenProcess, EnumProcessModules, process-access events (Sysmon 10 where configured) and child-process creation (Sysmon 1). The enumeration call itself is not recorded."
     },
     "legit_use": "Task managers, EDR agents, installers, backup tools and inventory software.",
     "related": [
@@ -4891,8 +5057,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — EnumProcesses",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-enumprocesses"
+      },
+      {
+        "label": "MITRE ATT&CK T1057: Process Discovery",
+        "url": "https://attack.mitre.org/techniques/T1057/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "EnumProcessModules",
@@ -5149,10 +5328,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/devnotes/etweventwrite",
     "detection": {
-      "summary": "ETW blinding: overwrite the EtwEventWrite or EtwEventWriteFull prologue, hook ntdll, or use direct syscalls to suppress provider events; detect .text modifications to ntdll, PAGE_EXECUTE_READWRITE on ntdll, cross-view section comparison, EDR hook-integrity failures, and telemetry gaps for PowerShell, .NET or Defender providers. No direct Sysmon event exists.",
+      "summary": "EtwEventWrite has no self-event; detect tampering through ntdll integrity, EDR instrumentation and gaps in expected provider telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "There is no self-event for EtwEventWrite; use ntdll integrity checks, ETW-TI/kernel telemetry and gaps in expected provider events."
+      "notes": "Monitor ntdll image integrity, EDR hooks and provider-event gaps rather than expecting a Sysmon event for the API. Correlate with other AMSI/ETW tampering behavior; the absence of an event is not proof by itself."
     },
     "legit_use": "Every ETW provider and runtime that emits events, including Windows components, .NET, PowerShell and third-party applications.",
     "related": [],
@@ -5160,8 +5339,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — EtwEventWrite",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/devnotes/etweventwrite"
+      },
+      {
+        "label": "MITRE ATT&CK T1685: Disable or Modify Tools",
+        "url": "https://attack.mitre.org/techniques/T1685/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "EtwNotificationRegister",
@@ -5182,7 +5374,7 @@
     "related": [],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -6043,10 +6235,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getasynckeystate",
     "detection": {
-      "summary": "Polling keylogger: repeatedly call GetAsyncKeyState across ASCII/VK ranges to capture keystrokes without a hook; detect tight polling loops in processes without an interactive UI, imports of GetAsyncKeyState/GetKeyState/GetKeyboardState, EDR API telemetry, and keystroke data written to files, registry or the network. No direct Sysmon event exists.",
+      "summary": "GetAsyncKeyState has no reviewed Sysmon/ETW event; key polling is detected through EDR hooks, call stacks and behavioral analysis.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "No Sysmon or standard ETW event; detection depends on API hooking, ETW-based EDR sensors, behavioral polling analysis and static imports."
+      "notes": "Use EDR user-mode hooks or polling analysis and correlate with SetWindowsHookEx, GetKeyboardState or GetKeyState. The reviewed Sysmon event set does not record the key-state query."
     },
     "legit_use": "Games, input remapping, accessibility tools, macro utilities, UI automation and remote-control software.",
     "related": [
@@ -6058,8 +6250,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — GetAsyncKeyState",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getasynckeystate"
+      },
+      {
+        "label": "MITRE ATT&CK T1056.001: Input Capture: Keylogging",
+        "url": "https://attack.mitre.org/techniques/T1056/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "GetClassNameW",
@@ -6291,7 +6496,7 @@
     ],
     "suspicion": "low",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -8584,10 +8789,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-gettokeninformation",
     "detection": {
-      "summary": "GetTokenInformation has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "GetTokenInformation has no reviewed Sysmon/ETW event; token reconnaissance is inferred from API/EDR telemetry and adjacent token operations.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate GetTokenInformation with OpenProcessToken, AdjustTokenPrivileges, DuplicateTokenEx or impersonation. EDR token/handle telemetry is required; Sysmon 10 may add process-access context but not the query."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [],
@@ -8595,8 +8800,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — GetTokenInformation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-gettokeninformation"
+      },
+      {
+        "label": "MITRE ATT&CK T1082: System Information Discovery",
+        "url": "https://attack.mitre.org/techniques/T1082/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "GetTopWindow",
@@ -10264,10 +10482,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetreadfile",
     "detection": {
-      "summary": "InternetReadFile has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "InternetReadFile has no reviewed Sysmon/ETW event; Sysmon 3 records the connection, not the response read.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR network/API telemetry to observe InternetReadFile and correlate with Sysmon 3 connections and Sysmon 11 file writes from the same process. Import presence alone is common in browsers and updaters."
     },
     "legit_use": "Browsers, updaters, telemetry clients and installers.",
     "related": [
@@ -10278,8 +10496,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — InternetReadFile",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetreadfile"
+      },
+      {
+        "label": "MITRE ATT&CK T1071: Application Layer Protocol",
+        "url": "https://attack.mitre.org/techniques/T1071/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "InternetReadFileExW",
@@ -10415,10 +10646,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetwritefile",
     "detection": {
-      "summary": "InternetWriteFile has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "InternetWriteFile has no reviewed Sysmon/ETW event; Sysmon 3 shows the connection, not the bytes uploaded.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR network/API telemetry for upload behavior and correlate with Sysmon 3 connections and file or credential access that could supply the data. Do not describe Sysmon 3 as request-body visibility."
     },
     "legit_use": "Browsers, updaters, telemetry clients and installers.",
     "related": [
@@ -10428,8 +10659,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — InternetWriteFile",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetwritefile"
+      },
+      {
+        "label": "MITRE ATT&CK T1041: Exfiltration Over C2 Channel",
+        "url": "https://attack.mitre.org/techniques/T1041/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "ioctlsocket",
@@ -10506,10 +10750,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-isdebuggerpresent",
     "detection": {
-      "summary": "IsDebuggerPresent has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "IsDebuggerPresent has no native event; anti-debug checks are inferred from API/EDR telemetry and surrounding control flow.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR user-mode hooks or call stacks and correlate with CheckRemoteDebuggerPresent, NtQueryInformationProcess, timing checks and debugger-detection branches. Sysmon does not log this query."
     },
     "legit_use": "Anti-cheat, DRM, licensing and crash-reporting components.",
     "related": [
@@ -10520,8 +10764,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — IsDebuggerPresent",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-isdebuggerpresent"
+      },
+      {
+        "label": "MITRE ATT&CK T1622: Debugger Evasion",
+        "url": "https://attack.mitre.org/techniques/T1622/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "IsProcessorFeaturePresent",
@@ -10746,7 +11003,7 @@
     "related": [],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -10772,7 +11029,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -10808,7 +11065,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -10858,7 +11115,7 @@
     ],
     "suspicion": "low",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -10904,10 +11161,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-listen",
     "detection": {
-      "summary": "listen has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "listen has no reviewed Sysmon/ETW event; Sysmon 3 records connections, not the socket state change.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR socket/API telemetry, firewall or network-flow data for inbound listeners and correlate with accept, bind and subsequent connection events. A listening socket by itself is not proof of malicious behavior."
     },
     "legit_use": "Browsers, games, IM clients, IT tooling and updaters.",
     "related": [
@@ -10918,8 +11175,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — listen",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-listen"
+      },
+      {
+        "label": "MITRE ATT&CK T1095: Non-Application Layer Protocol",
+        "url": "https://attack.mitre.org/techniques/T1095/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "LoadLibraryA",
@@ -11283,10 +11553,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaenumeratelogonsessions",
     "detection": {
-      "summary": "Reconnaissance of logged-on users and sessions, often followed by LsaGetLogonSessionData and token theft or lateral movement; detect LSASS handle/RPC access, EDR hooks on sechost!LsaEnumerateLogonSessions, and non-management processes enumerating sessions. No direct Sysmon event exists for the API call.",
+      "summary": "LsaEnumerateLogonSessions has no reviewed Sysmon/ETW event; LSASS access telemetry and EDR RPC visibility provide context.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "There is no direct Sysmon or standard ETW event; detection depends on LSASS access telemetry, EDR hooks and behavior around subsequent token or session use."
+      "notes": "Use Sysmon 10 ProcessAccess where configured for LSASS access and EDR LSASS/RPC telemetry for the call. Correlate with LsaGetLogonSessionData and later token or authentication activity."
     },
     "legit_use": "Windows logon UI, audit/policy tools, RMM, EDR and identity-management agents.",
     "related": [
@@ -11296,8 +11566,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — LsaEnumerateLogonSessions",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaenumeratelogonsessions"
+      },
+      {
+        "label": "MITRE ATT&CK T1033: System Owner/User Discovery",
+        "url": "https://attack.mitre.org/techniques/T1033/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "LsaFreeReturnBuffer",
@@ -11340,10 +11623,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsagetlogonsessiondata",
     "detection": {
-      "summary": "Used to profile logged-on accounts and sessions after LsaEnumerateLogonSessions; detect LSASS RPC/handle access, session-enumeration sequences followed by token theft or lateral movement, and unexpected binaries querying session data. No direct Sysmon event exists for the API call.",
+      "summary": "LsaGetLogonSessionData is not directly logged; detect it through LSASS access telemetry and the surrounding session-reconnaissance chain.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "There is no direct Sysmon or standard ETW event; rely on LSASS access telemetry, EDR hooks and the surrounding reconnaissance or token-manipulation chain."
+      "notes": "Correlate with LsaEnumerateLogonSessions, LsaOpenPolicy and token operations. Sysmon 10 can show LSASS access when ProcessAccess is enabled; the LSA query itself requires EDR or LSASS-side telemetry."
     },
     "legit_use": "Windows logon UI, audit/policy tools, RMM, EDR and identity-management agents.",
     "related": [
@@ -11353,8 +11636,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — LsaGetLogonSessionData",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsagetlogonsessiondata"
+      },
+      {
+        "label": "MITRE ATT&CK T1033: System Owner/User Discovery",
+        "url": "https://attack.mitre.org/techniques/T1033/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "LsaOpenPolicy",
@@ -11367,10 +11663,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaopenpolicy",
     "detection": {
-      "summary": "LsaOpenPolicy has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "LsaOpenPolicy has no reviewed Sysmon/ETW event; LSASS access and EDR RPC telemetry provide the practical signal.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Look for LsaOpenPolicy together with LsaQueryInformationPolicy or LsaRetrievePrivateData. Sysmon 10 may show LSASS process access; EDR is needed to distinguish policy queries from normal security-tool behavior."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [
@@ -11381,8 +11677,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — LsaOpenPolicy",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaopenpolicy"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "LsaQueryInformationPolicy",
@@ -11400,10 +11705,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaqueryinformationpolicy",
     "detection": {
-      "summary": "LsaQueryInformationPolicy has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "LsaQueryInformationPolicy is not directly logged; correlate LSASS access with policy and account discovery behavior.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use Sysmon 10 ProcessAccess for LSASS context and EDR RPC telemetry for the policy query. Correlate with LsaOpenPolicy and subsequent account, session or token operations."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [
@@ -11413,8 +11718,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — LsaQueryInformationPolicy",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaqueryinformationpolicy"
+      },
+      {
+        "label": "MITRE ATT&CK T1082: System Information Discovery",
+        "url": "https://attack.mitre.org/techniques/T1082/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "LsaRetrievePrivateData",
@@ -11431,10 +11749,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaretrieveprivatedata",
     "detection": {
-      "summary": "Retrieves LSA private data or secrets such as autologon and service-account passwords; requires an LSA policy handle with POLICY_GET_PRIVATE_INFORMATION. Detect LSASS handle/RPC access, EDR hooks on advapi32!LsaRetrievePrivateData or LSASS RPC, and processes enumerating SECURITY\\Policy\\Secrets. There is no direct Sysmon event for the call.",
+      "summary": "LsaRetrievePrivateData has no reviewed Sysmon/ETW event; detect LSASS secret access through process-access and EDR RPC telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "LSASS handle access may appear in Sysmon 10 if ProcessAccess is configured, but the LSA RPC call itself requires EDR or LSASS-side auditing."
+      "notes": "Correlate with LsaOpenPolicy and Sysmon 10 LSASS access where configured. EDR LSASS/RPC telemetry is required to see the private-data read; the API call is not a Sysmon event."
     },
     "legit_use": "LSA packages, services using LSA private data, Windows autologon, credential managers and backup/migration tools.",
     "related": [
@@ -11444,8 +11762,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — LsaRetrievePrivateData",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaretrieveprivatedata"
+      },
+      {
+        "label": "MITRE ATT&CK T1003.004: OS Credential Dumping: LSA Secrets",
+        "url": "https://attack.mitre.org/techniques/T1003/004/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "LsaStorePrivateData",
@@ -12409,10 +12740,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/lmshare/nf-lmshare-netsessionenum",
     "detection": {
-      "summary": "NetSessionEnum has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NetSessionEnum has no reviewed Sysmon/ETW event; correlate SMB/network activity with the surrounding discovery behavior.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use Sysmon 3 for network connections and Sysmon 17/18 for named pipes where applicable, plus EDR SMB/API telemetry. The enum call itself is not recorded."
     },
     "legit_use": "Task managers, EDR agents, installers, backup tools and inventory software.",
     "related": [
@@ -12423,8 +12754,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NetSessionEnum",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/lmshare/nf-lmshare-netsessionenum"
+      },
+      {
+        "label": "MITRE ATT&CK T1049: System Network Connections Discovery",
+        "url": "https://attack.mitre.org/techniques/T1049/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NetShareAdd",
@@ -12437,10 +12781,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/lmshare/nf-lmshare-netshareadd",
     "detection": {
-      "summary": "NetShareAdd has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NetShareAdd is not directly logged; monitor share configuration changes and subsequent SMB access instead.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate Sysmon 12/13 registry changes for LanmanServer share configuration with Sysmon 3 and 17/18 access events. Use EDR API telemetry for the call and treat the import as context."
     },
     "legit_use": "IT administration, backup, deployment and monitoring tools.",
     "related": [
@@ -12451,8 +12795,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NetShareAdd",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/lmshare/nf-lmshare-netshareadd"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NetShareDel",
@@ -12559,10 +12912,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/lmuse/nf-lmuse-netuseadd",
     "detection": {
-      "summary": "NetUseAdd has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NetUseAdd has no reviewed Sysmon/ETW event; correlate SMB connections and named-pipe activity with the connection setup.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use Sysmon 3 for network connections and Sysmon 17/18 for named pipes, plus EDR network/API telemetry. The API call itself is not recorded, and legitimate backup and admin tools use it."
     },
     "legit_use": "IT administration, backup, deployment and monitoring tools.",
     "related": [
@@ -12573,8 +12926,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NetUseAdd",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/lmuse/nf-lmuse-netuseadd"
+      },
+      {
+        "label": "MITRE ATT&CK T1021.002: Remote Services: SMB/Windows Admin Shares",
+        "url": "https://attack.mitre.org/techniques/T1021/002/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NetUseDel",
@@ -12623,10 +12989,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/lmaccess/nf-lmaccess-netuserenum",
     "detection": {
-      "summary": "NetUserEnum has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NetUserEnum has no reviewed Sysmon/ETW event; account discovery is detected through API/EDR telemetry and follow-on activity.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR user-mode hooks or call stacks and correlate with NetUserGetInfo, NetLocalGroupGetMembers, logon activity and later credential access. Sysmon does not record the enumeration call."
     },
     "legit_use": "Task managers, EDR agents, installers, backup tools and inventory software.",
     "related": [
@@ -12637,8 +13003,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NetUserEnum",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/lmaccess/nf-lmaccess-netuserenum"
+      },
+      {
+        "label": "MITRE ATT&CK T1087.001: Account Discovery: Local Account",
+        "url": "https://attack.mitre.org/techniques/T1087/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NetUserGetInfo",
@@ -12745,10 +13124,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/lmwksta/nf-lmwksta-netwkstauserenum",
     "detection": {
-      "summary": "NetWkstaUserEnum has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NetWkstaUserEnum is not directly logged; logged-on-user discovery is inferred from API/EDR telemetry and adjacent session queries.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with NetSessionEnum, NetUserEnum, LsaEnumerateLogonSessions and later authentication activity. Use EDR hooks or call stacks; there is no reviewed Sysmon event for the API."
     },
     "legit_use": "Task managers, EDR agents, installers, backup tools and inventory software.",
     "related": [
@@ -12758,8 +13137,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NetWkstaUserEnum",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/lmwksta/nf-lmwksta-netwkstauserenum"
+      },
+      {
+        "label": "MITRE ATT&CK T1033: System Owner/User Discovery",
+        "url": "https://attack.mitre.org/techniques/T1033/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtAllocateVirtualMemory",
@@ -12892,7 +13284,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -12913,10 +13305,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntcreatesection",
     "detection": {
-      "summary": "NtCreateSection has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NtCreateSection has no reviewed Sysmon/ETW event; section use is detected through EDR or provider-specific memory telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with NtMapViewOfSection, NtWriteVirtualMemory and remote thread creation (Sysmon 8) where those adjacent operations produce events. EDR kernel/user telemetry is needed for the section creation itself."
     },
     "legit_use": "Loaders, shared-memory applications and security tools that create sections.",
     "related": [
@@ -12927,8 +13319,21 @@
     "verified": false,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NtCreateSection",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntcreatesection"
+      },
+      {
+        "label": "MITRE ATT&CK T1055: Process Injection",
+        "url": "https://attack.mitre.org/techniques/T1055/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtCreateThread",
@@ -12961,7 +13366,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -12998,7 +13403,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13034,7 +13439,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13065,7 +13470,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -13095,7 +13500,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13130,7 +13535,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13162,7 +13567,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -13228,7 +13633,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13263,7 +13668,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13298,7 +13703,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13423,7 +13828,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13528,7 +13933,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13581,10 +13986,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess",
     "detection": {
-      "summary": "NtQueryInformationProcess has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NtQueryInformationProcess has no reviewed Sysmon/ETW event; process reconnaissance and anti-debug checks need API/EDR telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with IsDebuggerPresent, CheckRemoteDebuggerPresent, process-enumeration APIs and hollowing-related memory operations. Sysmon 10 can show process access, but not this query."
     },
     "legit_use": "Debuggers, process monitors and security tools that query native process state.",
     "related": [
@@ -13595,8 +14000,21 @@
     "verified": false,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NtQueryInformationProcess",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess"
+      },
+      {
+        "label": "MITRE ATT&CK T1057: Process Discovery",
+        "url": "https://attack.mitre.org/techniques/T1057/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtQueryInformationThread",
@@ -13655,7 +14073,7 @@
     "related": [],
     "suspicion": "low",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13704,10 +14122,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation",
     "detection": {
-      "summary": "NtQuerySystemInformation has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NtQuerySystemInformation is not directly logged; system discovery requires API/EDR telemetry and correlation with follow-on access.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR hooks or call stacks and correlate with EnumProcesses, NtQueryInformationProcess, process-access events (Sysmon 10) and child-process creation (Sysmon 1). The query itself is not a Sysmon event."
     },
     "legit_use": "System monitors, inventory tools and security products that query native system state.",
     "related": [
@@ -13718,8 +14136,21 @@
     "verified": false,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NtQuerySystemInformation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation"
+      },
+      {
+        "label": "MITRE ATT&CK T1082: System Information Discovery",
+        "url": "https://attack.mitre.org/techniques/T1082/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtQueryValueKey",
@@ -13749,7 +14180,7 @@
     ],
     "suspicion": "low",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13814,7 +14245,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13847,7 +14278,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13909,7 +14340,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13947,7 +14378,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -13985,7 +14416,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -14005,19 +14436,32 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setprocessinformation",
     "detection": {
-      "summary": "Abused to set ProcessInstrumentationCallback for EDR/ETW evasion, alter ProcessExecuteFlags or mitigation policy, or set ProcessBreakOnTermination to make a process critical; detect EDR hooks on ntdll!NtSetInformationProcess, anomalous ProcessInformationClass values, instrumentation callbacks pointing to non-image memory, and processes becoming critical. No direct Sysmon event exists.",
+      "summary": "NtSetInformationProcess has no reviewed Sysmon/ETW event; process-configuration abuse requires EDR kernel or user-mode telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "No direct Sysmon or kernel ETW event covers most process information classes; EDR hooks/kernel callbacks are required, and direct syscalls can bypass hooks."
+      "notes": "Monitor EDR callbacks for instrumentation-callback, mitigation-policy and debug-flag changes and correlate with injection, debugger evasion or process tampering. Sysmon 25 may show adjacent image tampering but does not identify this API."
     },
     "legit_use": "Debuggers, runtime hosts and security tools that configure native process behavior.",
     "related": [],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — equivalent API documentation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setprocessinformation"
+      },
+      {
+        "label": "MITRE ATT&CK T1685: Disable or Modify Tools",
+        "url": "https://attack.mitre.org/techniques/T1685/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtSetInformationThread",
@@ -14034,10 +14478,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationthread",
     "detection": {
-      "summary": "NtSetInformationThread has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NtSetInformationThread is not directly logged; ThreadHideFromDebugger and similar changes require EDR telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR hooks or call stacks and correlate with IsDebuggerPresent, NtQueryInformationProcess and anti-debug behavior. The reviewed Sysmon event set does not expose this thread-information class."
     },
     "legit_use": "Debuggers, runtime hosts and security tools that configure native thread behavior.",
     "related": [],
@@ -14045,8 +14489,21 @@
     "verified": false,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NtSetInformationThread",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationthread"
+      },
+      {
+        "label": "MITRE ATT&CK T1622: Debugger Evasion",
+        "url": "https://attack.mitre.org/techniques/T1622/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtSetSystemInformation",
@@ -14064,10 +14521,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/ntsetsysteminformation",
     "detection": {
-      "summary": "NtSetSystemInformation has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NtSetSystemInformation has no reviewed Sysmon/ETW event; privileged system changes require EDR or provider-specific telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with driver loading (Sysmon 6), service changes (Sysmon 12/13) and privileged process activity (Sysmon 1). The API call itself is not recorded, and legitimate security products also use it."
     },
     "legit_use": "Only security products and research tooling should touch these paths.",
     "related": [],
@@ -14075,8 +14532,21 @@
     "verified": false,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — NtSetSystemInformation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/ntsetsysteminformation"
+      },
+      {
+        "label": "MITRE ATT&CK T1685: Disable or Modify Tools",
+        "url": "https://attack.mitre.org/techniques/T1685/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtSetValueKey",
@@ -14113,7 +14583,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -14151,7 +14621,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -14181,7 +14651,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -14201,10 +14671,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/ntxxx-routines",
     "detection": {
-      "summary": "NtTestAlert has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it. (undocumented NTAPI heavily abused in early bird APC Injection)",
+      "summary": "NtTestAlert has no reviewed Sysmon/ETW event; APC delivery is inferred from the injection chain around it.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with QueueUserAPC/NtQueueApcThread, remote thread creation (Sysmon 8) and process access (Sysmon 10). EDR or ETW-TI telemetry is needed to see the APC delivery itself."
     },
     "legit_use": "Debuggers, accessibility tools, EDR/AV self-protection, game overlays and some installers.",
     "related": [
@@ -14212,10 +14682,23 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — generic API documentation",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/ntxxx-routines"
+      },
+      {
+        "label": "MITRE ATT&CK T1055: Process Injection",
+        "url": "https://attack.mitre.org/techniques/T1055/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtTraceControl",
@@ -14241,7 +14724,7 @@
     "related": [],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -14265,7 +14748,7 @@
     "related": [],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -14285,10 +14768,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwunloaddriver",
     "detection": {
-      "summary": "NtUnloadDriver has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "NtUnloadDriver is not directly logged; Sysmon 6 records driver loads, not unloads.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate service-registry changes (Sysmon 12/13), prior driver load (Sysmon 6) and EDR driver-management telemetry. Do not cite Sysmon 6 as an unload event."
     },
     "legit_use": "Driver managers and security products that unload kernel drivers.",
     "related": [
@@ -14296,10 +14779,23 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — equivalent API documentation",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwunloaddriver"
+      },
+      {
+        "label": "MITRE ATT&CK T1685: Disable or Modify Tools",
+        "url": "https://attack.mitre.org/techniques/T1685/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "NtUnmapViewOfSection",
@@ -14331,7 +14827,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -14393,7 +14889,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -14419,7 +14915,7 @@
     ],
     "suspicion": "low",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -14675,10 +15171,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken",
     "detection": {
-      "summary": "OpenProcessToken has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "OpenProcessToken has no reviewed Sysmon/ETW event; token acquisition is inferred from EDR handle telemetry and subsequent token operations.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with DuplicateTokenEx, GetTokenInformation, AdjustTokenPrivileges, SetThreadToken and CreateProcessWithTokenW. Sysmon 10 can add process-access context when a handle is opened to another process."
     },
     "legit_use": "Password managers, backup tools, SSO clients and forensic suites.",
     "related": [
@@ -14690,8 +15186,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — OpenProcessToken",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken"
+      },
+      {
+        "label": "MITRE ATT&CK T1134.001: Access Token Manipulation: Token Impersonation/Theft",
+        "url": "https://attack.mitre.org/techniques/T1134/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "OpenSCManagerA",
@@ -14703,10 +15212,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openscmanagera",
     "detection": {
-      "summary": "OpenSCManagerA has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "OpenSCManagerA has no reviewed Sysmon/ETW event; detect the resulting service operations rather than the ANSI open call.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with Sysmon 12/13 service-registry changes and Sysmon 1 service-host or binary execution. Use EDR hooks for the API call; the documented Sysmon events describe effects, not the open itself."
     },
     "legit_use": "Installers, updaters, drivers and enterprise management software.",
     "related": [
@@ -14716,8 +15225,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — OpenSCManagerA",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openscmanagera"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "OpenSCManagerW",
@@ -14729,10 +15247,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openscmanagerw",
     "detection": {
-      "summary": "OpenSCManagerW has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "OpenSCManagerW is not directly logged; service-control intent is inferred from subsequent changes and execution.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with CreateService, ChangeServiceConfig, StartService and DeleteService effects under the Services registry key (Sysmon 12/13) and process creation (Sysmon 1). The open call itself is not a Sysmon event."
     },
     "legit_use": "Installers, updaters, drivers and enterprise management software.",
     "related": [
@@ -14743,8 +15261,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — OpenSCManagerW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openscmanagerw"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "OpenServiceW",
@@ -15056,10 +15583,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-pfxexportcertstoreex",
     "detection": {
-      "summary": "PFXExportCertStoreEx has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "PFXExportCertStoreEx has no reviewed Sysmon/ETW event; certificate/private-key export is inferred from file writes and EDR crypto telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with Sysmon 11 writes of .pfx/.p12 files and EDR certificate-store/API telemetry. Legitimate browser, VPN and installer workflows also export PFX data, so scope by process and destination."
     },
     "legit_use": "Browsers, VPNs, messengers, installers, password managers and games.",
     "related": [],
@@ -15067,8 +15594,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — PFXExportCertStoreEx",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-pfxexportcertstoreex"
+      },
+      {
+        "label": "MITRE ATT&CK T1552.004: Unsecured Credentials: Private Keys",
+        "url": "https://attack.mitre.org/techniques/T1552/004/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "PFXImportCertStore",
@@ -15086,10 +15626,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-pfximportcertstore",
     "detection": {
-      "summary": "PFXImportCertStore has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "PFXImportCertStore is not directly logged; correlate PFX file access with certificate-store changes and later signing or authentication.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use Sysmon 11 for PFX file creation/modification and EDR certificate-store/API telemetry for the import. There is no reviewed Sysmon event for the import call itself."
     },
     "legit_use": "Browsers, VPNs, messengers, installers, password managers and games.",
     "related": [],
@@ -15097,8 +15637,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — PFXImportCertStore",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-pfximportcertstore"
+      },
+      {
+        "label": "MITRE ATT&CK T1552.004: Unsecured Credentials: Private Keys",
+        "url": "https://attack.mitre.org/techniques/T1552/004/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "PostMessageW",
@@ -16756,7 +17309,7 @@
     ],
     "suspicion": "medium",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -16792,7 +17345,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -16823,7 +17376,7 @@
     ],
     "suspicion": "low",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -16913,7 +17466,7 @@
     ],
     "suspicion": "low",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -16945,7 +17498,7 @@
     ],
     "suspicion": "low",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "generic",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -17296,7 +17849,7 @@
     "related": [],
     "suspicion": "low",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -17322,7 +17875,7 @@
     ],
     "suspicion": "low",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -17861,10 +18414,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadtoken",
     "detection": {
-      "summary": "SetThreadToken has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "SetThreadToken has no reviewed Sysmon/ETW event; impersonation is inferred from EDR token telemetry and the operations performed under the token.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with DuplicateTokenEx, ImpersonateLoggedOnUser, OpenProcessToken and privileged file, registry or network access. Sysmon 1 can show a process created under the token; the thread-token assignment itself is not logged."
     },
     "legit_use": "Installer services, UAC-elevated helpers and management agents.",
     "related": [
@@ -17874,8 +18427,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — SetThreadToken",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadtoken"
+      },
+      {
+        "label": "MITRE ATT&CK T1134.001: Access Token Manipulation: Token Impersonation/Theft",
+        "url": "https://attack.mitre.org/techniques/T1134/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "SetTimer",
@@ -17919,10 +18485,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-settokeninformation",
     "detection": {
-      "summary": "SetTokenInformation has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "SetTokenInformation is not directly logged; integrity-level or session changes require EDR token telemetry and correlation.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with duplicate/open token calls and subsequent privileged process creation (Sysmon 1), file or registry access. The API call itself has no reviewed Sysmon/ETW event."
     },
     "legit_use": "Installer services, UAC-elevated helpers and management agents.",
     "related": [],
@@ -17930,8 +18496,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — SetTokenInformation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-settokeninformation"
+      },
+      {
+        "label": "MITRE ATT&CK T1134: Access Token Manipulation",
+        "url": "https://attack.mitre.org/techniques/T1134/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "SetUnhandledExceptionFilter",
@@ -18046,10 +18625,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowshookexa",
     "detection": {
-      "summary": "SetWindowsHookExA has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "SetWindowsHookExA has no direct event; Sysmon 7 can show a hook DLL loading, but not the hook installation.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR user-mode hooks or call stacks and correlate with Sysmon 7 image loads only when a hook DLL is injected. Low-level keyboard hooks can run in the installing process without a DLL load."
     },
     "legit_use": "Accessibility software, remote support tools, clipboard managers and screenshot utilities.",
     "related": [
@@ -18059,8 +18638,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — SetWindowsHookExA",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowshookexa"
+      },
+      {
+        "label": "MITRE ATT&CK T1056.001: Input Capture: Keylogging",
+        "url": "https://attack.mitre.org/techniques/T1056/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "SetWindowsHookExW",
@@ -18078,10 +18670,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowshookexw",
     "detection": {
-      "summary": "Keylogging or input capture: WH_KEYBOARD_LL or WH_KEYBOARD hooks capture keystrokes, while global WH_* hooks can load a malicious DLL into other desktop processes; detect hooks installed by non-accessibility/remote-support processes, unsigned hook DLLs loaded into many processes (Sysmon 7), and EDR hook-chain telemetry. No direct Sysmon event exists for the API call.",
+      "summary": "SetWindowsHookExW is not directly logged; Sysmon 7 may show hook-DLL loading but not the hook call itself.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "Sysmon 7 can show a hook DLL loading into target processes but does not identify SetWindowsHookExW; low-level keyboard hooks run in the installing process and may load no DLL."
+      "notes": "Correlate hook installation with Sysmon 7 image loads only when a DLL is injected; low-level keyboard hooks may stay in-process. EDR hooks, call stacks and subsequent keylogging or input-capture behavior are the practical signals."
     },
     "legit_use": "Accessibility tools, remote support, clipboard managers, macro utilities, input remapping and UI automation.",
     "related": [
@@ -18093,8 +18685,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — SetWindowsHookExW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowshookexw"
+      },
+      {
+        "label": "MITRE ATT&CK T1056.001: Input Capture: Keylogging",
+        "url": "https://attack.mitre.org/techniques/T1056/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "SetWinEventHook",
@@ -18578,10 +19183,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-startservicew",
     "detection": {
-      "summary": "StartServiceW has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "StartServiceW has no reviewed Sysmon/ETW event; the observable effect is service-host or service-binary execution.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate Sysmon 1 process creation for services.exe or the configured binary with prior service-registry changes (Sysmon 12/13). Use EDR API telemetry for the start call itself."
     },
     "legit_use": "Installers, updaters, drivers and enterprise management software.",
     "related": [
@@ -18592,8 +19197,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — StartServiceW",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-startservicew"
+      },
+      {
+        "label": "MITRE ATT&CK T1569.002: System Services: Service Execution",
+        "url": "https://attack.mitre.org/techniques/T1569/002/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "StretchBlt",
@@ -19108,7 +19726,7 @@
     ],
     "suspicion": "medium",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -19146,7 +19764,7 @@
     ],
     "suspicion": "high",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -19183,7 +19801,7 @@
     ],
     "suspicion": "high",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -19218,7 +19836,7 @@
     ],
     "suspicion": "medium",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -19233,10 +19851,10 @@
     "mitre": [],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc",
     "detection": {
-      "summary": "VirtualAlloc has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "VirtualAlloc has no reviewed Sysmon/ETW event; memory allocation is inferred from EDR or provider-specific memory telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with VirtualProtect, writes, image mapping and remote thread creation (Sysmon 8) where those adjacent operations produce events. Allocation alone is ubiquitous in normal processes."
     },
     "legit_use": "Every process; heaps, stacks, mapped files and JIT engines.",
     "related": [
@@ -19248,8 +19866,17 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — VirtualAlloc",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "VirtualAllocEx",
@@ -19389,10 +20016,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotect",
     "detection": {
-      "summary": "VirtualProtect has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "VirtualProtect is not directly logged; protection changes require EDR or provider-specific memory telemetry and adjacent injection context.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with VirtualAlloc, writes and remote thread creation (Sysmon 8) or process access (Sysmon 10). Every process changes page protections, so use call stacks and the surrounding chain, not the import alone."
     },
     "legit_use": "Every process; heaps, stacks, mapped files and JIT engines.",
     "related": [
@@ -19403,8 +20030,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — VirtualProtect",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotect"
+      },
+      {
+        "label": "MITRE ATT&CK T1055: Process Injection",
+        "url": "https://attack.mitre.org/techniques/T1055/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "VirtualProtectEx",
@@ -19746,10 +20386,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveinopen",
     "detection": {
-      "summary": "waveInOpen has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "waveInOpen has no reviewed Sysmon/ETW event; microphone capture is inferred from EDR audio/API telemetry and file or network effects.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with waveInStart, waveInAddBuffer, Sysmon 11 audio-file writes and Sysmon 3 uploads. EDR user-mode hooks or call stacks are needed for the device-open call."
     },
     "legit_use": "Accessibility software, remote support tools, clipboard managers and screenshot utilities.",
     "related": [
@@ -19761,8 +20401,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — waveInOpen",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveinopen"
+      },
+      {
+        "label": "MITRE ATT&CK T1123: Audio Capture",
+        "url": "https://attack.mitre.org/techniques/T1123/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "waveInPrepareHeader",
@@ -19810,10 +20463,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveinstart",
     "detection": {
-      "summary": "waveInStart has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "waveInStart is not directly logged; recording is inferred from EDR audio telemetry and the resulting file or network activity.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with waveInOpen, waveInAddBuffer, Sysmon 11 file writes and Sysmon 3 connections. There is no reviewed Sysmon event for starting the waveform capture."
     },
     "legit_use": "Accessibility software, remote support tools, clipboard managers and screenshot utilities.",
     "related": [
@@ -19823,8 +20476,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — waveInStart",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveinstart"
+      },
+      {
+        "label": "MITRE ATT&CK T1123: Audio Capture",
+        "url": "https://attack.mitre.org/techniques/T1123/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "WinExec",
@@ -20143,10 +20809,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata",
     "detection": {
-      "summary": "WinHttpReadData has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "WinHttpReadData has no reviewed Sysmon/ETW event; Sysmon 3 records the connection, not the response-body read.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR network/API telemetry and correlate with Sysmon 3 connections and file writes from the same process. Do not describe Sysmon 3 as payload-content visibility."
     },
     "legit_use": "Browsers, updaters, telemetry clients and installers.",
     "related": [
@@ -20157,8 +20823,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — WinHttpReadData",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpreaddata"
+      },
+      {
+        "label": "MITRE ATT&CK T1071: Application Layer Protocol",
+        "url": "https://attack.mitre.org/techniques/T1071/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "WinHttpReceiveResponse",
@@ -20327,10 +21006,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpwritedata",
     "detection": {
-      "summary": "WinHttpWriteData has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "WinHttpWriteData is not directly logged; Sysmon 3 shows the connection, not the uploaded body.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR network/API telemetry for upload behavior and correlate with Sysmon 3 connections and the data source. The API call itself has no reviewed Sysmon event."
     },
     "legit_use": "Browsers, updaters, telemetry clients and installers.",
     "related": [
@@ -20340,8 +21019,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — WinHttpWriteData",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nf-winhttp-winhttpwritedata"
+      },
+      {
+        "label": "MITRE ATT&CK T1041: Exfiltration Over C2 Channel",
+        "url": "https://attack.mitre.org/techniques/T1041/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "WNetAddConnection2A",
@@ -20358,10 +21050,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winnetwk/nf-winnetwk-wnetaddconnection2a",
     "detection": {
-      "summary": "WNetAddConnection2A has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "WNetAddConnection2A has no reviewed Sysmon/ETW event; correlate SMB connections and named pipes with the connection setup.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use Sysmon 3 for network connections and Sysmon 17/18 for named pipes, plus EDR network/API telemetry. The ANSI API call is not recorded."
     },
     "legit_use": "IT administration, backup, deployment and monitoring tools.",
     "related": [
@@ -20371,8 +21063,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — WNetAddConnection2A",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winnetwk/nf-winnetwk-wnetaddconnection2a"
+      },
+      {
+        "label": "MITRE ATT&CK T1021.002: Remote Services: SMB/Windows Admin Shares",
+        "url": "https://attack.mitre.org/techniques/T1021/002/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "WNetAddConnection2W",
@@ -20389,10 +21094,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winnetwk/nf-winnetwk-wnetaddconnection2w",
     "detection": {
-      "summary": "WNetAddConnection2W has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "WNetAddConnection2W is not directly logged; detect the resulting SMB connection and remote-share activity instead.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate Sysmon 3 connections and Sysmon 17/18 named-pipe activity with EDR API telemetry. Legitimate admin, backup and deployment tools use the same call."
     },
     "legit_use": "IT administration, backup, deployment and monitoring tools.",
     "related": [
@@ -20404,8 +21109,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — WNetAddConnection2W",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winnetwk/nf-winnetwk-wnetaddconnection2w"
+      },
+      {
+        "label": "MITRE ATT&CK T1021.002: Remote Services: SMB/Windows Admin Shares",
+        "url": "https://attack.mitre.org/techniques/T1021/002/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "WNetAddConnection3W",
@@ -20422,10 +21140,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/winnetwk/nf-winnetwk-wnetaddconnection3w",
     "detection": {
-      "summary": "WNetAddConnection3W has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "WNetAddConnection3W has no reviewed Sysmon/ETW event; correlate SMB and named-pipe activity with the connection request.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use Sysmon 3 and 17/18 plus EDR network/API telemetry. The owner-window variant changes authentication prompting, not the observability of the connection itself."
     },
     "legit_use": "IT administration, backup, deployment and monitoring tools.",
     "related": [
@@ -20435,8 +21153,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — WNetAddConnection3W",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winnetwk/nf-winnetwk-wnetaddconnection3w"
+      },
+      {
+        "label": "MITRE ATT&CK T1021.002: Remote Services: SMB/Windows Admin Shares",
+        "url": "https://attack.mitre.org/techniques/T1021/002/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "WNetCancelConnection2W",
@@ -20657,7 +21388,7 @@
     ],
     "suspicion": "low",
     "verified": true,
-    "docs_kind": "related",
+    "docs_kind": "direct",
     "telemetry_coverage": "none",
     "reviewed_at": null,
     "sources": []
@@ -21573,10 +22304,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsqueryusertoken",
     "detection": {
-      "summary": "WTSQueryUserToken has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "WTSQueryUserToken is not directly logged; token acquisition requires EDR telemetry and correlation with later process creation.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Correlate with DuplicateTokenEx, CreateProcessAsUser/CreateProcessWithTokenW and Sysmon 1 process creation. The query requires SeTcbPrivilege and is not a Sysmon event."
     },
     "legit_use": "Installer services, UAC-elevated helpers and management agents.",
     "related": [],
@@ -21584,8 +22315,21 @@
     "verified": true,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — WTSQueryUserToken",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsqueryusertoken"
+      },
+      {
+        "label": "MITRE ATT&CK T1134.001: Access Token Manipulation: Token Impersonation/Theft",
+        "url": "https://attack.mitre.org/techniques/T1134/001/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "ZwCreateThreadEx",
@@ -21618,7 +22362,7 @@
     ],
     "suspicion": "high",
     "verified": false,
-    "docs_kind": "related",
+    "docs_kind": "equivalent",
     "telemetry_coverage": "indirect",
     "reviewed_at": null,
     "sources": []
@@ -21671,10 +22415,10 @@
     ],
     "docs": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation",
     "detection": {
-      "summary": "ZwQuerySystemInformation has no direct Sysmon or kernel ETW event; only imports, user-mode hooks and surrounding behavior expose it.",
+      "summary": "ZwQuerySystemInformation has no reviewed Sysmon/ETW event; native system discovery requires API/EDR telemetry.",
       "sysmon_events": [],
       "etw_providers": [],
-      "notes": "User-mode API not logged directly by Sysmon or standard kernel ETW; detect via static import triage, sandbox API hooking, or behavioral correlation."
+      "notes": "Use EDR hooks or call stacks and correlate with EnumProcesses, NtQueryInformationProcess, Sysmon 10 process access and Sysmon 1 child-process creation. The query itself is not recorded."
     },
     "legit_use": "Task managers, EDR agents, installers, backup tools and inventory software.",
     "related": [
@@ -21684,8 +22428,21 @@
     "verified": false,
     "docs_kind": "direct",
     "telemetry_coverage": "none",
-    "reviewed_at": null,
-    "sources": []
+    "reviewed_at": "2026-11-15",
+    "sources": [
+      {
+        "label": "Microsoft Learn — ZwQuerySystemInformation",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation"
+      },
+      {
+        "label": "MITRE ATT&CK T1082: System Information Discovery",
+        "url": "https://attack.mitre.org/techniques/T1082/"
+      },
+      {
+        "label": "Microsoft Sysmon events",
+        "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-events"
+      }
+    ]
   },
   {
     "name": "ZwUnmapViewOfSection",

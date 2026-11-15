@@ -34,7 +34,7 @@ const result = arraysOk
       errors: ['Top-level JSON value must be an array in apis.json, categories.json and presets.json'],
       warnings: [],
       categoryCounts: {},
-      docsCounts: { direct: 0, related: 0, none: 0 },
+      docsCounts: { direct: 0, equivalent: 0, generic: 0, related: 0, none: 0 },
       telemetryCounts: { direct: 0, indirect: 0, none: 0, unknown: 0 },
       reviewedCount: 0,
       unverified: []
@@ -54,6 +54,16 @@ console.log(`Entries marked verified:false: ${result.unverified.length}${result.
 console.log(`Documentation kinds: ${Object.entries(result.docsCounts).map(([k, v]) => `${k}=${v}`).join(', ')}`)
 console.log(`Telemetry coverage: ${Object.entries(result.telemetryCounts).map(([k, v]) => `${k}=${v}`).join(', ')}`)
 console.log(`Human-reviewed entries: ${result.reviewedCount}`)
+const highSuspicion = apisList.filter((api) => api.suspicion === 'high')
+const highReviewed = highSuspicion.filter((api) => api.reviewed_at).length
+const highNoTelemetry = highSuspicion.filter((api) => {
+  const detection = api.detection || {}
+  return !(detection.sysmon_events?.length || detection.etw_providers?.length)
+})
+const genericNotes = apisList.filter((api) => /User-mode API not logged directly by Sysmon/i.test(api.detection?.notes || '')).length
+console.log(`High-suspicion entries: ${highSuspicion.length} (${highReviewed} reviewed, ${highNoTelemetry.length} without Sysmon/ETW)`)
+console.log(`Entries with the generic user-mode detection note: ${genericNotes}`)
+console.log(`Entries with review sources: ${apisList.filter((api) => api.sources?.length).length}`)
 
 for (const warning of result.warnings) console.log(`warning: ${warning}`)
 if (errors.length) {

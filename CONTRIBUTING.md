@@ -51,8 +51,10 @@ accept exploit code, shellcode, weaponised samples or step-by-step attack instru
      `network-sockets`).
    - `related` entries must exist in the dataset.
    - MITRE ids use `T####` or `T####.###`.
-   - `docs_kind` must be `direct`, `related`, or `none`. Use `direct` only when the linked Microsoft Learn
-     page is for this specific function. A generic or related page is `related`.
+   - `docs_kind` must be `direct`, `equivalent`, `generic`, `related`, or `none`. Use `direct` when the
+     linked Microsoft Learn page is for this function or its A/W variant. Use `equivalent` for a native
+     `Nt*`, `Zw*` or `Rtl*` entry whose link documents its Win32/native counterpart, and `generic` for a
+     shared index or reference page. Use `related` for any other related page.
    - `telemetry_coverage` must be `direct`, `indirect`, `none`, or `unknown`. Sysmon and ETW events that
      describe OS effects are `indirect`. Use `direct` only when a provider reports the API call itself.
    - `reviewed_at` is `null` unless a human has reviewed the entry's claims. If set, use an ISO date that
@@ -107,6 +109,7 @@ npm run check
 - [ ] New entries use real API names and real Microsoft Learn links.
 - [ ] `docs_kind` and `telemetry_coverage` match the evidence in the entry.
 - [ ] `reviewed_at` and `sources` are only populated for a real, cited human review.
+- [ ] Generic boilerplate is not used as a substitute for a reviewed, API-specific detection note.
 - [ ] Detection advice is behavioural and defensive.
 - [ ] No exploit, malware or weaponised code is included.
 - [ ] UI changes keep keyboard access, visible focus and AA contrast.

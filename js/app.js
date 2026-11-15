@@ -31,7 +31,7 @@ import {
   visibleCategories
 } from './state.js'
 import { ApiDialog, CatalogView, ContributeDialog, PasteImportsDialog, SelectionPanel, clear, h } from './ui.js'
-import { DOCS_KIND_VALUES, REVIEW_STATUS_VALUES, TELEMETRY_COVERAGE_VALUES } from './schema.js'
+import { DOCS_KIND_VALUES, REVIEW_STATUS_VALUES, TELEMETRY_COVERAGE_VALUES, isReviewed } from './schema.js'
 import {
   ROOT_DESCRIPTION,
   ROOT_TITLE,
@@ -311,7 +311,8 @@ function renderTabs(visible, groups) {
 function updateStatus(filtered, visible) {
   const shown = visible.length ? filtered.length : 0
   const categoryWord = visible.length === 1 ? 'category' : 'categories'
-  let text = `Showing ${shown} of ${data.apis.length} APIs · ${visible.length} ${categoryWord}`
+  const reviewed = data.apis.filter(isReviewed).length
+  let text = `Showing ${shown} of ${data.apis.length} APIs · ${visible.length} ${categoryWord} · ${reviewed} reviewed`
   if (state.selection.length) text += ` · ${state.selection.length} selected`
   if (state.importFilter && state.selection.length) text += ' · paste import filter'
   if (state.query) text += ` · search “${state.query}”`

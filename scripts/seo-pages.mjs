@@ -108,10 +108,16 @@ function mitreLinks(api) {
 function sourceList(api) {
   const items = []
   if (api.docs) {
-    const kind = api.docs_kind === 'direct' ? 'direct documentation' : 'related documentation'
+    const kind = {
+      direct: 'direct documentation',
+      equivalent: 'equivalent API documentation',
+      generic: 'generic documentation',
+      related: 'related documentation'
+    }[api.docs_kind] || 'documentation link'
     items.push(`<li><a href="${escapeHtml(api.docs)}" rel="noopener noreferrer">Microsoft Learn documentation</a> <span class="muted">(${escapeHtml(kind)})</span></li>`)
   }
   for (const source of api.sources || []) {
+    if (source.url === api.docs) continue
     items.push(`<li><a href="${escapeHtml(source.url)}" rel="noopener noreferrer">${escapeHtml(source.label)}</a></li>`)
   }
   if (!items.length) items.push('<li>No documentation or review sources recorded.</li>')
